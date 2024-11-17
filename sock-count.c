@@ -20,13 +20,13 @@ main(int argc, char **argv) {
     uint64_t value;
     struct sockaddr_ll addr;
 
-    ASSERT(argc >= 2);
+    TRY(argc >= 2, RETURN(EINVAL, err));
     name = argv[1];
     printf("interface: %s\n", name);
 
     TRY((map = bpf_map_create(BPF_MAP_TYPE_ARRAY,
         sizeof(key), sizeof(value), IPPROTO_MAX)) != -1,
-        goto err);
+        RETURN(errno, err));
 
     struct bpf_insn insns[] = {
         bpf_mov64i(bpf_r2, ETH_HLEN + offsetof(struct iphdr, protocol)),
@@ -54,11 +54,11 @@ main(int argc, char **argv) {
 
     TRYF((prog = bpf_prog_load(BPF_PROG_TYPE_SOCKET_FILTER, insns,
         LEN(insns), 1, log_buf, sizeof(log_buf))) != -1,
-        goto err, "%s %s\n", strerror(errno), log_buf);
+        RETURN(errno, err), "%s %s\n", strerror(errno), log_buf);
 
     TRYF((sock = socket(PF_PACKET,
         SOCK_RAW | SOCK_NONBLOCK | SOCK_CLOEXEC, htons(ETH_P_ALL))) > 0,
-        goto err, "%s\n", strerror(errno));
+        RETURN(errno, err), "%s\n", strerror(errno));
 
     ZERO(addr);
     addr.sll_family = AF_PACKET;
@@ -66,9 +66,9 @@ main(int argc, char **argv) {
     addr.sll_protocol = htons(ETH_P_ALL);
 
     TRYF(!bind(sock, (struct sockaddr *)&addr, sizeof(addr)),
-        goto err, "%s: %s\n", name, strerror(errno));
+        RETURN(errno, err), "%s: %s\n", name, strerror(errno));
     TRYF(!setsockopt(sock, SOL_SOCKET, SO_ATTACH_BPF, &prog, sizeof(prog)),
-        goto err, " %s\n", strerror(errno));
+        RETURN(errno, err), " %s\n", strerror(errno));
 
     for (i = 0; i < 10; i++) {
         for (j = 0; j < IPPROTO_MAX; j++) {
@@ -76,7 +76,7 @@ main(int argc, char **argv) {
 #define _case(t) case IPPROTO_##t: \
                     key = j; \
                     TRYF(bpf_map_lookup(map, &key, &value) != -1, \
-                         goto err, " %s\n", strerror(errno)); \
+                        RETURN(errno, err), " %s\n", strerror(errno)); \
                     printf("%4s: %3lu ", #t, value); \
                     break;
             _case(TCP);

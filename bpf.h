@@ -34,6 +34,11 @@
     _TRYF(exp, "ASSERT", _exit(1), fmt,  ##__VA_ARGS__)
 #define ASSERT(exp) ASSERTF(exp, "\n")
 
+#define RETURN(_ret, _pos) do { \
+    ret = _ret; \
+    goto _pos; \
+} while (0)
+
 #ifndef offsetofend
 #define offsetofend(TYPE, MEMBER) \
     (offsetof(TYPE, MEMBER)    + sizeof((((TYPE *)0)->MEMBER)))
