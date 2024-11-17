@@ -24,28 +24,27 @@
 #define ZEROS(x, n) bzero(x, n)
 #define ZERO(x) ZEROS(&(x), sizeof(x))
 
-#define LOG(fmt, ...) printf(fmt, ##__VA_ARGS__);
-#define _LOGERR(tag, fmt, ...) do { \
+#define LOG(fmt, arg...) printf(fmt, ##arg);
+#define _LOGERR(tag, fmt, arg...) do { \
     printf("\033[38;5;1m"); \
-    printf("[%s %d] [%s] " fmt, __FILE__, __LINE__, \
-        tag, ##__VA_ARGS__); \
+    printf("[%s %d] [%s] " fmt, __FILE__, __LINE__, tag, ##arg); \
     printf("\033[38;5;15m"); \
 } while(0)
 
-#define LOGERR(fmt, ...) _LOGERR("ERROR", fmt, ##__VA_ARGS__)
-#define _TRYF(exp, tag, next, fmt, ...) ({ \
+#define LOGERR(fmt, arg...) _LOGERR("ERROR", fmt, ##arg)
+#define _TRYF(exp, tag, next, fmt, arg...) ({ \
     if (!(exp)) { \
-        _LOGERR(tag, "`%s`" fmt, #exp, ##__VA_ARGS__); \
+        _LOGERR(tag, "`%s`" fmt, #exp, ##arg); \
         next; \
     } \
     1; \
 })
 
-#define TRYF(exp, next, fmt, ...) \
-    _TRYF(exp, "TRY", next, fmt, ##__VA_ARGS__)
+#define TRYF(exp, next, fmt, arg...) \
+    _TRYF(exp, "TRY", next, fmt, ##arg)
 #define TRY(exp, next) TRYF(exp, next, "\n")
-#define ASSERTF(exp, fmt, ...) \
-    _TRYF(exp, "ASSERT", _exit(1), fmt,  ##__VA_ARGS__)
+#define ASSERTF(exp, fmt, arg...) \
+    _TRYF(exp, "ASSERT", _exit(1), fmt,  ##arg)
 #define ASSERT(exp) ASSERTF(exp, "\n")
 
 #define RETURN(_ret, _pos) do { \
