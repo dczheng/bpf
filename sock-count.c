@@ -69,6 +69,6 @@ err:
     if (sock > 0) close(sock);
     if (map > 0) close(map);
     if (prog > 0) close(prog);
-    if (ret) printf("ERROR: %s\n", strerror(ret));
+    if (ret) LOGERR("%s\n", strerror(ret));
     return ret;
 }

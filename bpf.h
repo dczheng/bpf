@@ -19,17 +19,18 @@
 #define ZEROS(x, n) bzero(x, n)
 #define ZERO(x) ZEROS(&(x), sizeof(x))
 
-#define DIE(fmt, ...) do { \
-    printf("[%s %d] [DIE] " fmt, __FILE__, __LINE__, ##__VA_ARGS__); \
-    _exit(1); \
+#define _LOG(tag, fmt, ...) do { \
+    printf("\033[38;5;1m"); \
+    printf("[%s %d] [%s] " fmt, __FILE__, __LINE__, \
+        tag, ##__VA_ARGS__); \
+    printf("\033[38;5;15m"); \
 } while(0)
+
+#define LOGERR(fmt, ...) _LOG("ERROR", fmt, ##__VA_ARGS__)
 
 #define _TRYF(exp, tag, next, fmt, ...) ({ \
     if (!(exp)) { \
-        printf("\033[38;5;1m"); \
-        printf("[%s %d] [%s] `%s` " fmt, __FILE__, __LINE__, \
-            tag, #exp, ##__VA_ARGS__); \
-        printf("\033[38;5;15m"); \
+        _LOG(tag, "`%s`" fmt, #exp, ##__VA_ARGS__); \
         next; \
     } \
     1; \
