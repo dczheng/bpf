@@ -13,9 +13,9 @@ main(int argc, char **argv) {
     name = argv[1];
     printf("interface: %s\n", name);
 
-    TRY((map = bpf_map_create(BPF_MAP_TYPE_ARRAY,
-        sizeof(key), sizeof(value), IPPROTO_MAX)) != -1,
-        RETURN(errno, err));
+    TRY(!(ret = bpf_map_create(&map, BPF_MAP_TYPE_ARRAY,
+        sizeof(key), sizeof(value), IPPROTO_MAX)),
+        goto err);
 
     struct bpf_insn insns[] = {
         bpf_mov64i(bpf_r2, ETH_HLEN + offsetof(struct iphdr, protocol)),
@@ -41,19 +41,18 @@ main(int argc, char **argv) {
 
     bpf_prog_dump(insns, sizeof(insns));
 
-    TRYF((prog = bpf_prog_load(BPF_PROG_TYPE_SOCKET_FILTER, insns,
-        LEN(insns), 1, log_buf, sizeof(log_buf))) != -1,
-        RETURN(errno, err), "%s %s\n", strerror(errno), log_buf);
+    TRYF(!(ret = bpf_prog_load(&prog, BPF_PROG_TYPE_SOCKET_FILTER, insns,
+        LEN(insns), 1, log_buf, sizeof(log_buf), "MIT")),
+        goto err, "%s\n", log_buf);
 
-    TRY((sock = if_attach(name, prog)) != -1, RETURN(errno, err));
+    TRY(!(ret = if_attach(&sock, name, prog)), goto err);
 
     for (i = 0; i < 10; i++) {
         for (j = 0; j < IPPROTO_MAX; j++) {
             switch(j){
 #define _case(t) case IPPROTO_##t: \
                     key = j; \
-                    TRYF(bpf_map_lookup(map, &key, &value) != -1, \
-                        RETURN(errno, err), " %s\n", strerror(errno)); \
+                    TRY(!(ret = bpf_map_lookup(map, &key, &value)), goto err); \
                     printf("%4s: %3lu ", #t, value); \
                     break;
             _case(TCP);
@@ -70,5 +69,6 @@ err:
     if (sock > 0) close(sock);
     if (map > 0) close(map);
     if (prog > 0) close(prog);
+    if (ret) printf("ERROR: %s\n", strerror(ret));
     return ret;
 }

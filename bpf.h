@@ -265,66 +265,89 @@
 
 #define bpf_load_fd(d, fd) bpf_imm64_ld(d, 0x1, fd)
 
-#define bpf_map_create(_map_type, _key_size, _value_size, _max_entries) ({ \
-    union bpf_attr attr = {0}; \
-    attr.map_type = (__u32)(_map_type); \
-    attr.key_size = (__u32)(_key_size); \
-    attr.value_size = (__u32)(_value_size); \
-    attr.max_entries = (__u32)(_max_entries); \
-    syscall(__NR_bpf, BPF_MAP_CREATE, &attr, \
-        offsetofend(union bpf_attr, map_token_fd)); \
-})
-
-#define bpf_map_lookup(_map_fd, _key, _value) ({ \
-    union bpf_attr attr = {0}; \
-    attr.map_fd = (__u32)(_map_fd); \
-    attr.key = (__u64)(_key); \
-    attr.value = (__u64)(_value); \
-    syscall(__NR_bpf, BPF_MAP_LOOKUP_ELEM, &attr, \
-        offsetofend(union bpf_attr, flags)); \
-})
-
-#define bpf_prog_load(_prog_type, _insns, _insn_cnt, \
-    _log_level, _log_buf, _log_size) ({ \
-    union bpf_attr attr = {0}; \
-    attr.prog_type = (__u32)(_prog_type); \
-    attr.insns = (__u64)(_insns); \
-    attr.insn_cnt = (__u32)(_insn_cnt); \
-    attr.license = (__u64)("MIT"); \
-    attr.log_level = (__u32)(_log_level); \
-    attr.log_buf = (__u64)(_log_buf); \
-    attr.log_size = (__u32)(_log_size); \
-    syscall(__NR_bpf, BPF_PROG_LOAD, &attr, \
-        offsetofend(union bpf_attr, prog_token_fd)); \
-})
-
-#define bpf_prog_dump(buf, size) do { \
-    int _s = sizeof(struct bpf_insn); \
-    for (int i = 0; i < (int)(size); i++) { \
-        if (i % _s == 0) printf("[%08d] ", i / _s); \
-        printf("%02x ", ((uint8_t*)(buf))[i]); \
-        if (i % _s == _s - 1) printf("\n"); \
-    } \
-} while(0)
+#define ptr_to_u64(p) (__u64)(p)
 
 static inline int
-if_attach(char *name, int bpf) {
-    int sock;
-    struct sockaddr_ll addr;
+bpf_map_create(int *map, __u32 map_type, __u32 key_size, __u32 value_size,
+    __u32 max_entries) {
+    union bpf_attr attr = {0};
+    attr.map_type = map_type;
+    attr.key_size = key_size;
+    attr.value_size = value_size;
+    attr.max_entries = max_entries;
+    *map = syscall(__NR_bpf, BPF_MAP_CREATE, &attr,
+        offsetofend(union bpf_attr, map_token_fd));
+    return (*map == -1) ? errno : 0;
+}
 
-    ZERO(addr);
+static inline int
+bpf_map_lookup(__u32 map_fd, void *key, void *value) {
+    union bpf_attr attr = {0};
+    attr.map_fd = map_fd;
+    attr.key = ptr_to_u64(key);
+    attr.value = ptr_to_u64(value);
+    if (syscall(__NR_bpf, BPF_MAP_LOOKUP_ELEM, &attr,
+        offsetofend(union bpf_attr, flags)) == -1)
+        return errno;
+    return 0;
+}
+
+static inline int
+bpf_prog_load(int *prog, __u32 prog_type, void *insns, __u64 insn_cnt,
+    __u32 log_level, void *log_buf, __u32 log_size,
+    char *license) {
+    union bpf_attr attr = {0};
+
+    if (log_level == 0) {
+        TRY(log_buf == NULL, return EINVAL);
+        TRY(log_size == 0, return EINVAL);
+    }
+    TRY(license, return EINVAL);
+
+    attr.prog_type = prog_type;
+    attr.insns = ptr_to_u64(insns);
+    attr.insn_cnt = insn_cnt;
+    attr.license = ptr_to_u64(license);
+    attr.log_level = log_level;
+    attr.log_buf = ptr_to_u64(log_buf);
+    attr.log_size = log_size;
+    *prog = syscall(__NR_bpf, BPF_PROG_LOAD, &attr,
+        offsetofend(union bpf_attr, prog_token_fd));
+    return (*prog == -1) ? errno : 0;
+}
+
+static inline void
+bpf_prog_dump(void *buf, size_t size) {
+    size_t _s = sizeof(struct bpf_insn);
+    for (size_t i = 0; i < (size); i++) {
+        if (i % _s == 0) printf("[%08ld] ", i / _s);
+        printf("%02x ", ((uint8_t*)buf)[i]);
+        if (i % _s == _s - 1) printf("\n");
+    }
+}
+
+static inline int
+if_attach(int *sock, char *name, int bpf) {
+    struct sockaddr_ll addr = {0};
+    int ret = 0;
+
     addr.sll_family = AF_PACKET;
     addr.sll_ifindex = if_nametoindex(name);
     addr.sll_protocol = htons(ETH_P_ALL);
 
-    TRYF((sock = socket(PF_PACKET,
-        SOCK_RAW | SOCK_NONBLOCK | SOCK_CLOEXEC, htons(ETH_P_ALL))) > 0,
-        return -1, "[%s] socket()\n", strerror(errno));
-    TRYF(!bind(sock, (struct sockaddr *)&addr, sizeof(addr)),
-        return -1, "[%s] bind(): %s\n", name, strerror(errno));
-    TRYF(!setsockopt(sock, SOL_SOCKET, SO_ATTACH_BPF, &bpf, sizeof(bpf)),
-        return -1, "[%s] setsockopt(): %s\n", name, strerror(errno));
-    return sock;
+    TRY((*sock = socket(PF_PACKET,
+        SOCK_RAW | SOCK_NONBLOCK | SOCK_CLOEXEC, htons(ETH_P_ALL))) != -1,
+        return errno);
+    TRY(!bind(*sock, (struct sockaddr *)&addr, sizeof(addr)),
+        RETURN(errno, err));
+    TRY(!setsockopt(*sock, SOL_SOCKET, SO_ATTACH_BPF, &bpf, sizeof(bpf)),
+        RETURN(errno, err));
+err:
+    if (ret) {
+        close(*sock);
+        *sock = -1;
+    }
+    return ret;
 }
 
 #endif
