@@ -2,10 +2,18 @@
 #define __BPF_H__
 
 #include <stdio.h>
+#include <errno.h>
 #include <string.h>
+#include <stddef.h>
 #include <unistd.h>
 #include <linux/bpf.h>
 #include <sys/syscall.h>
+#include <net/if.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <linux/ip.h>
+#include <linux/if_ether.h>
+#include <linux/if_packet.h>
 
 #define LEN(x) (int)(sizeof(x) / sizeof((x)[0]))
 #define ZEROS(x, n) bzero(x, n)
@@ -299,4 +307,25 @@
     } \
 } while(0)
 
+static inline int
+if_attach(char *name, int bpf) {
+    int sock;
+    struct sockaddr_ll addr;
+
+    ZERO(addr);
+    addr.sll_family = AF_PACKET;
+    addr.sll_ifindex = if_nametoindex(name);
+    addr.sll_protocol = htons(ETH_P_ALL);
+
+    TRYF((sock = socket(PF_PACKET,
+        SOCK_RAW | SOCK_NONBLOCK | SOCK_CLOEXEC, htons(ETH_P_ALL))) > 0,
+        return -1, "[%s] socket()\n", strerror(errno));
+    TRYF(!bind(sock, (struct sockaddr *)&addr, sizeof(addr)),
+        return -1, "[%s] bind(): %s\n", name, strerror(errno));
+    TRYF(!setsockopt(sock, SOL_SOCKET, SO_ATTACH_BPF, &bpf, sizeof(bpf)),
+        return -1, "[%s] setsockopt(): %s\n", name, strerror(errno));
+    return sock;
+}
+
 #endif
+

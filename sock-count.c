@@ -1,13 +1,3 @@
-#include <stdio.h>
-#include <errno.h>
-#include <stddef.h>
-#include <net/if.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <linux/ip.h>
-#include <linux/if_ether.h>
-#include <linux/if_packet.h>
-
 #include "bpf.h"
 
 char log_buf[1024];
@@ -18,7 +8,6 @@ main(int argc, char **argv) {
     int sock = -1, map = -1, prog = -1, i, j, ret = 0;
     uint32_t key;
     uint64_t value;
-    struct sockaddr_ll addr;
 
     TRY(argc >= 2, RETURN(EINVAL, err));
     name = argv[1];
@@ -56,19 +45,7 @@ main(int argc, char **argv) {
         LEN(insns), 1, log_buf, sizeof(log_buf))) != -1,
         RETURN(errno, err), "%s %s\n", strerror(errno), log_buf);
 
-    TRYF((sock = socket(PF_PACKET,
-        SOCK_RAW | SOCK_NONBLOCK | SOCK_CLOEXEC, htons(ETH_P_ALL))) > 0,
-        RETURN(errno, err), "%s\n", strerror(errno));
-
-    ZERO(addr);
-    addr.sll_family = AF_PACKET;
-    addr.sll_ifindex = if_nametoindex(name);
-    addr.sll_protocol = htons(ETH_P_ALL);
-
-    TRYF(!bind(sock, (struct sockaddr *)&addr, sizeof(addr)),
-        RETURN(errno, err), "%s: %s\n", name, strerror(errno));
-    TRYF(!setsockopt(sock, SOL_SOCKET, SO_ATTACH_BPF, &prog, sizeof(prog)),
-        RETURN(errno, err), " %s\n", strerror(errno));
+    TRY((sock = if_attach(name, prog)) != -1, RETURN(errno, err));
 
     for (i = 0; i < 10; i++) {
         for (j = 0; j < IPPROTO_MAX; j++) {
