@@ -15,6 +15,11 @@
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
 
+/*
+  - RFC9669: https://www.rfc-editor.org/rfc/rfc9669.txt
+  - Linux: https://docs.kernel.org/bpf/index.html
+*/
+
 #define LEN(x) (int)(sizeof(x) / sizeof((x)[0]))
 #define ZEROS(x, n) bzero(x, n)
 #define ZERO(x) ZEROS(&(x), sizeof(x))
