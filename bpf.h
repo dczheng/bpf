@@ -277,7 +277,7 @@
     attr.prog_type = (__u32)(_prog_type); \
     attr.insns = (__u64)(_insns); \
     attr.insn_cnt = (__u32)(_insn_cnt); \
-    attr.license = (__u64)("GPL"); \
+    attr.license = (__u64)("MIT"); \
     attr.log_level = (__u32)(_log_level); \
     attr.log_buf = (__u64)(_log_buf); \
     attr.log_size = (__u32)(_log_size); \
