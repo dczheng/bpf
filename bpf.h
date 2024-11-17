@@ -41,7 +41,7 @@
 
 #ifndef offsetofend
 #define offsetofend(TYPE, MEMBER) \
-    (offsetof(TYPE, MEMBER)    + sizeof((((TYPE *)0)->MEMBER)))
+    (offsetof(TYPE, MEMBER) + sizeof((((TYPE *)0)->MEMBER)))
 #endif
 
 #define bpf_r0 BPF_REG_0
