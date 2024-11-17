@@ -11,7 +11,7 @@ main(int argc, char **argv) {
 
     TRY(argc >= 2, RETURN(EINVAL, err));
     name = argv[1];
-    printf("interface: %s\n", name);
+    LOG("interface: %s\n", name);
 
     TRY(!(ret = bpf_map_create(&map, BPF_MAP_TYPE_ARRAY,
         sizeof(key), sizeof(value), IPPROTO_MAX)),
@@ -53,7 +53,7 @@ main(int argc, char **argv) {
 #define _case(t) case IPPROTO_##t: \
                     key = j; \
                     TRY(!(ret = bpf_map_lookup(map, &key, &value)), goto err); \
-                    printf("%4s: %3lu ", #t, value); \
+                    LOG("%4s: %3lu ", #t, value); \
                     break;
             _case(TCP);
             _case(UDP);
@@ -61,7 +61,7 @@ main(int argc, char **argv) {
 #undef _case
             }
         }
-        printf("\n");
+        LOG("\n");
         sleep(1);
     }
 

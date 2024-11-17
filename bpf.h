@@ -19,18 +19,18 @@
 #define ZEROS(x, n) bzero(x, n)
 #define ZERO(x) ZEROS(&(x), sizeof(x))
 
-#define _LOG(tag, fmt, ...) do { \
+#define LOG(fmt, ...) printf(fmt, ##__VA_ARGS__);
+#define _LOGERR(tag, fmt, ...) do { \
     printf("\033[38;5;1m"); \
     printf("[%s %d] [%s] " fmt, __FILE__, __LINE__, \
         tag, ##__VA_ARGS__); \
     printf("\033[38;5;15m"); \
 } while(0)
 
-#define LOGERR(fmt, ...) _LOG("ERROR", fmt, ##__VA_ARGS__)
-
+#define LOGERR(fmt, ...) _LOGERR("ERROR", fmt, ##__VA_ARGS__)
 #define _TRYF(exp, tag, next, fmt, ...) ({ \
     if (!(exp)) { \
-        _LOG(tag, "`%s`" fmt, #exp, ##__VA_ARGS__); \
+        _LOGERR(tag, "`%s`" fmt, #exp, ##__VA_ARGS__); \
         next; \
     } \
     1; \
@@ -321,9 +321,9 @@ static inline void
 bpf_prog_dump(void *buf, size_t size) {
     size_t _s = sizeof(struct bpf_insn);
     for (size_t i = 0; i < (size); i++) {
-        if (i % _s == 0) printf("[%08ld] ", i / _s);
-        printf("%02x ", ((uint8_t*)buf)[i]);
-        if (i % _s == _s - 1) printf("\n");
+        if (i % _s == 0) LOG("[%08ld] ", i / _s);
+        LOG("%02x ", ((uint8_t*)buf)[i]);
+        if (i % _s == _s - 1) LOG("\n");
     }
 }
 
@@ -352,4 +352,3 @@ err:
 }
 
 #endif
-
