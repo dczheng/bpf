@@ -9,8 +9,6 @@ EXEC        = $(SRCS:.c=)
 .PHONY: all config clean
 all: $(EXEC)
 
-print = @echo "[$(1)] $($(1))"
-
 $(EXEC): %:%.c $(INCL) Makefile
 	$(CC) $(CFLAGS) $< $(LDFLAGS) -o $@
 
