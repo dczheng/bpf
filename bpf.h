@@ -2,6 +2,7 @@
 #define __BPF_H__
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <string.h>
 #include <stddef.h>
@@ -76,6 +77,14 @@
         .src_reg = _src_reg, \
         .off = _off, \
         .imm   = _imm})
+
+#define bpf_cmd_str(cmd) ({ \
+    uint8_t *p = (uint8_t*)(cmd); \
+    static char buf[sizeof(struct bpf_insn)*3 + 1]; \
+    for (size_t i = 0; i < sizeof(struct bpf_insn); i++) \
+        snprintf(&buf[i*3], sizeof(buf) - i*3, "%02x ", p[i]); \
+    buf; \
+})
 
 #define bpf_add32(d, s)      bpf_cmd(BPF_ADD |BPF_X|BPF_ALU, d, s, 0, 0)
 #define bpf_sub32(d, s)      bpf_cmd(BPF_SUB |BPF_X|BPF_ALU, d, s, 0, 0)
@@ -298,37 +307,38 @@ bpf_map_lookup(__u32 map_fd, void *key, void *value) {
 }
 
 static inline int
-bpf_prog_load(int *prog, __u32 prog_type, void *insns, __u64 insn_cnt,
-    __u32 log_level, void *log_buf, __u32 log_size,
-    char *license) {
+bpf_prog_load(int *prog, __u32 prog_type, struct bpf_insn *insns,
+    __u32 insn_cnt, char *license, uint32_t dump) {
     union bpf_attr attr = {0};
+    size_t i;
+    char *log = NULL;
+    int level = 0;
 
-    if (log_level == 0) {
-        TRY(log_buf == NULL, return EINVAL);
-        TRY(log_size == 0, return EINVAL);
-    }
     TRY(license, return EINVAL);
+
+    if (dump > 0) {
+        TRY(log = malloc(dump), return ENOMEM);
+        ZEROS(log, dump);
+        level = 2;
+    }
 
     attr.prog_type = prog_type;
     attr.insns = ptr_to_u64(insns);
     attr.insn_cnt = insn_cnt;
     attr.license = ptr_to_u64(license);
-    attr.log_level = log_level;
-    attr.log_buf = ptr_to_u64(log_buf);
-    attr.log_size = log_size;
+    attr.log_level = level;
+    attr.log_buf = ptr_to_u64(log);
+    attr.log_size = dump;
     *prog = syscall(__NR_bpf, BPF_PROG_LOAD, &attr,
         offsetofend(union bpf_attr, prog_token_fd));
-    return (*prog == -1) ? errno : 0;
-}
 
-static inline void
-bpf_prog_dump(void *buf, size_t size) {
-    size_t _s = sizeof(struct bpf_insn);
-    for (size_t i = 0; i < (size); i++) {
-        if (i % _s == 0) LOG("[%08ld] ", i / _s);
-        LOG("%02x ", ((uint8_t*)buf)[i]);
-        if (i % _s == _s - 1) LOG("\n");
+    if (dump > 0) {
+        for (i = 0; i < (size_t)insn_cnt; i++)
+            LOG("[%06ld] %s\n", i, bpf_cmd_str(&insns[i]));
+        LOG("%s\n", log);
+        free(log);
     }
+    return (*prog == -1) ? errno : 0;
 }
 
 static inline int

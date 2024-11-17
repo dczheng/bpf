@@ -1,7 +1,5 @@
 #include "bpf.h"
 
-char log_buf[1024];
-
 int
 main(int argc, char **argv) {
     char *name;
@@ -39,11 +37,8 @@ main(int argc, char **argv) {
         bpf_exit(),
     };
 
-    bpf_prog_dump(insns, sizeof(insns));
-
-    TRYF(!(ret = bpf_prog_load(&prog, BPF_PROG_TYPE_SOCKET_FILTER, insns,
-        LEN(insns), 1, log_buf, sizeof(log_buf), "MIT")),
-        goto err, "%s\n", log_buf);
+    TRY(!(ret = bpf_prog_load(&prog, BPF_PROG_TYPE_SOCKET_FILTER, insns,
+        LEN(insns), "MIT", 2048)), goto err);
 
     TRY(!(ret = if_attach(&sock, name, prog)), goto err);
 
