@@ -21,6 +21,10 @@
   - Linux: https://docs.kernel.org/bpf/index.html
 */
 
+#define KB 1024
+#define MB (KB * KB)
+#define GB (GB * GB)
+
 #define LEN(x) (int)(sizeof(x) / sizeof((x)[0]))
 #define ZEROS(x, n) bzero(x, n)
 #define ZERO(x) ZEROS(&(x), sizeof(x))
@@ -75,8 +79,8 @@
         .code  = _code, \
         .dst_reg = _dst_reg, \
         .src_reg = _src_reg, \
-        .off = _off, \
-        .imm   = _imm})
+        .off = (__u16)(_off), \
+        .imm   = (__u32)(_imm)})
 
 #define bpf_ins_str(cmd) ({ \
     uint8_t *p = (uint8_t*)(cmd); \
@@ -271,10 +275,11 @@
     bpf_ins(BPF_ATOMIC|BPF_DW|BPF_STX, d, s, o, BPF_XOR)
 
 #define bpf_imm64_ld(d, s, i) \
-    bpf_ins(BPF_IMM|BPF_DW|BPF_LD, d, s, 0, (__u32)(i)), \
+    bpf_ins(BPF_IMM|BPF_DW|BPF_LD, d, s, 0, (__u64)(i)), \
     bpf_ins(0, 0, 0, 0, ((__u64)(i)) >> 32)
 
-#define bpf_load_fd(d, fd) bpf_imm64_ld(d, 0x1, fd)
+#define bpf_imm64_int_ld(d, i) bpf_imm64_ld(d, 0x0, i)
+#define bpf_imm64_map_ld(d, fd) bpf_imm64_ld(d, 0x1, fd)
 #define bpf_return(r) \
     bpf_mov64i(bpf_r0, r), \
     bpf_exit()
