@@ -215,7 +215,7 @@
 #define bpf_jsle64i(d, s, o) bpf_ins(BPF_JSLE |BPF_K|BPF_JMP, d, 0, o, s)
 
 #define bpf_ja32(o)          bpf_ins(BPF_JA  |BPF_K|BPF_JMP32, 0, 0, 0, o)
-#define bpf_ja64(o)          bpf_ins(BPF_JA  |BPF_K|BPF_JMP64, 0, 0, o, 0)
+#define bpf_ja64(o)          bpf_ins(BPF_JA  |BPF_K|BPF_JMP, 0, 0, o, 0)
 #define bpf_call(id)         bpf_ins(BPF_CALL|BPF_K|BPF_JMP, 0, 0, 0, id)
 #define bpf_calli(o)         bpf_ins(BPF_CALL|BPF_K|BPF_JMP, 0, 1, 0, o)
 #define bpf_call_btf(id)     bpf_ins(BPF_CALL|BPF_K|BPF_JMP, 0, 2, 0, id)

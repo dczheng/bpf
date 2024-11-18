@@ -1,12 +1,12 @@
 CC			= gcc
-LDFLAGS		=
 CFLAGS		= -Wall -Wextra
+LDFLAGS		=
 
 SRCS		= $(wildcard *.c)
 INCL		= $(wildcard *.h)
-EXEC        = $(SRCS:.c=)
+EXEC		= $(SRCS:.c=)
 
-.PHONY: all config clean
+.PHONY: all clean
 all: $(EXEC)
 
 $(EXEC): %:%.c $(INCL) Makefile
