@@ -1,14 +1,14 @@
 #include "bpf.h"
+#include "config.h"
 
 int
 main(int argc, char **argv) {
-    char *name;
+    char *name = DEFAULT_IFACE;
     int sock = -1, map = -1, prog = -1, i, j, ret = 0;
     uint32_t key;
     uint64_t value;
 
-    TRY(argc >= 2, RETURN(EINVAL, err));
-    name = argv[1];
+    if (argc > 1) name = argv[1];
     LOG("interface: %s\n", name);
 
     TRY(!(ret = bpf_map_create(&map, BPF_MAP_TYPE_ARRAY,
