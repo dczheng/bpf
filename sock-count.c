@@ -16,17 +16,17 @@ main(int argc, char **argv) {
         goto err);
 
     struct bpf_insn insns[] = {
-        bpf_mov64i(bpf_r2, ETH_HLEN + offsetof(struct iphdr, protocol)),
+        bpf_mov32i(bpf_r2, ETH_HLEN + offsetof(struct iphdr, protocol)),
         bpf_mov64(bpf_r3, bpf_r10),
         bpf_add64i(bpf_r3, -4),
         bpf_mst32i(bpf_r3, 0, 0),
-        bpf_mov64i(bpf_r4, 1),
+        bpf_mov32i(bpf_r4, 1),
         bpf_call(BPF_FUNC_skb_load_bytes),
         bpf_jne64i(bpf_r0, 0, 8),
 
+        bpf_load_fd(bpf_r1, map),
         bpf_mov64(bpf_r2, bpf_r10),
         bpf_add64i(bpf_r2, -4),
-        bpf_load_fd(bpf_r1, map),
         bpf_call(BPF_FUNC_map_lookup_elem),
         bpf_jeq64i(bpf_r0, 0, 2),
 
