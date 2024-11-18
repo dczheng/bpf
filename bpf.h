@@ -276,6 +276,9 @@
     bpf_cmd(0, 0, 0, 0, ((__u64)(i)) >> 32)
 
 #define bpf_load_fd(d, fd) bpf_imm64_ld(d, 0x1, fd)
+#define bpf_return(r) \
+    bpf_mov64i(bpf_r0, r), \
+    bpf_exit()
 
 #define ptr_to_u64(p) (__u64)(p)
 
