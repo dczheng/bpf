@@ -217,42 +217,41 @@
 #define bpf_call_btf(id)     bpf_cmd(BPF_CALL|BPF_K|BPF_JMP, 0, 2, 0, id)
 #define bpf_exit()           bpf_cmd(BPF_EXIT|BPF_K|BPF_JMP, 0, 0, 0, 0)
 
+// store: *(size*)(dst + offset) = src
 #define bpf_mst8(d, o, s)    bpf_cmd(BPF_MEM|BPF_B |BPF_STX, d, s, o, 0)
 #define bpf_mst16(d, o, s)   bpf_cmd(BPF_MEM|BPF_H |BPF_STX, d, s, o, 0)
 #define bpf_mst32(d, o, s)   bpf_cmd(BPF_MEM|BPF_W |BPF_STX, d, s, o, 0)
 #define bpf_mst64(d, o, s)   bpf_cmd(BPF_MEM|BPF_DW|BPF_STX, d, s, o, 0)
+#define bpf_smst8(d, o, s)   bpf_cmd(BPF_MEMSX|BPF_B|BPF_STX, d, s, o, 0)
+#define bpf_smst16(d, o, s)  bpf_cmd(BPF_MEMSX|BPF_H|BPF_STX, d, s, o, 0)
+#define bpf_smst32(d, o, s)  bpf_cmd(BPF_MEMSX|BPF_W|BPF_STX, d, s, o, 0)
 
 #define bpf_mst8i(d, o, s)   bpf_cmd(BPF_MEM|BPF_B |BPF_ST, d, 0, o, s)
 #define bpf_mst16i(d, o, s)  bpf_cmd(BPF_MEM|BPF_H |BPF_ST, d, 0, o, s)
 #define bpf_mst32i(d, o, s)  bpf_cmd(BPF_MEM|BPF_W |BPF_ST, d, 0, o, s)
 #define bpf_mst64i(d, o, s)  bpf_cmd(BPF_MEM|BPF_DW|BPF_ST, d, 0, o, s)
+#define bpf_smst8i(d, o, s)  bpf_cmd(BPF_MEMSX|BPF_B|BPF_ST, d, 0, o, s)
+#define bpf_smst16i(d, o, s) bpf_cmd(BPF_MEMSX|BPF_H|BPF_ST, d, 0, o, s)
+#define bpf_smst32i(d, o, s) bpf_cmd(BPF_MEMSX|BPF_W|BPF_ST, d, 0, o, s)
 
+// load: dst = *(size*)(src + offset)
 #define bpf_mld8(d, s, o)    bpf_cmd(BPF_MEM|BPF_B |BPF_LDX, d, s, o, 0)
 #define bpf_mld16(d, s, o)   bpf_cmd(BPF_MEM|BPF_H |BPF_LDX, d, s, o, 0)
 #define bpf_mld32(d, s, o)   bpf_cmd(BPF_MEM|BPF_W |BPF_LDX, d, s, o, 0)
 #define bpf_mld64(d, s, o)   bpf_cmd(BPF_MEM|BPF_DW|BPF_LDX, d, s, o, 0)
+#define bpf_smld8(d, s, o)   bpf_cmd(BPF_MEMSX|BPF_B|BPF_LDX, d, s, o, 0)
+#define bpf_smld16(d, s, o)  bpf_cmd(BPF_MEMSX|BPF_H|BPF_LDX, d, s, o, 0)
+#define bpf_smld32(d, s, o)  bpf_cmd(BPF_MEMSX|BPF_W|BPF_LDX, d, s, o, 0)
 
 #define bpf_mld8i(d, s, o)   bpf_cmd(BPF_MEM|BPF_B |BPF_LD, d, 0, o, s)
 #define bpf_mld16i(d, s, o)  bpf_cmd(BPF_MEM|BPF_H |BPF_LD, d, 0, o, s)
 #define bpf_mld32i(d, s, o)  bpf_cmd(BPF_MEM|BPF_W |BPF_LD, d, 0, o, s)
 #define bpf_mld64i(d, s, o)  bpf_cmd(BPF_MEM|BPF_DW|BPF_LD, d, 0, o, s)
-
-#define bpf_smst8(d, o, s)   bpf_cmd(BPF_MEMSX|BPF_B|BPF_STX, d, s, o, 0)
-#define bpf_smst16(d, o, s)  bpf_cmd(BPF_MEMSX|BPF_H|BPF_STX, d, s, o, 0)
-#define bpf_smst32(d, o, s)  bpf_cmd(BPF_MEMSX|BPF_W|BPF_STX, d, s, o, 0)
-
-#define bpf_smst8i(d, o, s)  bpf_cmd(BPF_MEMSX|BPF_B|BPF_ST, d, 0, o, s)
-#define bpf_smst16i(d, o, s) bpf_cmd(BPF_MEMSX|BPF_H|BPF_ST, d, 0, o, s)
-#define bpf_smst32i(d, o, s) bpf_cmd(BPF_MEMSX|BPF_W|BPF_ST, d, 0, o, s)
-
-#define bpf_smld8(d, s, o)   bpf_cmd(BPF_MEMSX|BPF_B|BPF_LDX, d, s, o, 0)
-#define bpf_smld16(d, s, o)  bpf_cmd(BPF_MEMSX|BPF_H|BPF_LDX, d, s, o, 0)
-#define bpf_smld32(d, s, o)  bpf_cmd(BPF_MEMSX|BPF_W|BPF_LDX, d, s, o, 0)
-
 #define bpf_smld8i(d, s, o)  bpf_cmd(BPF_MEMSX|BPF_B|BPF_LD, d, 0, o, s)
 #define bpf_smld16i(d, s, o) bpf_cmd(BPF_MEMSX|BPF_H|BPF_LD, d, 0, o, s)
 #define bpf_smld32i(d, s, o) bpf_cmd(BPF_MEMSX|BPF_W|BPF_LD, d, 0, o, s)
 
+// atomic: *(size*)(dst + offset) += src
 #define bpf_atomic_add32(d, o, s) \
     bpf_cmd(BPF_ATOMIC|BPF_W|BPF_STX, d, s, o, BPF_ADD)
 #define bpf_atomic_or32(d, o, s) \

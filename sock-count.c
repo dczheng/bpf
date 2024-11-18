@@ -29,6 +29,7 @@ main(int argc, char **argv) {
         bpf_load_fd(bpf_r1, map),
         bpf_call(BPF_FUNC_map_lookup_elem),
         bpf_jeq64i(bpf_r0, 0, 2),
+
         bpf_mov64i(bpf_r1, 1),
         bpf_atomic_add64(bpf_r0, 0, bpf_r1),
 
