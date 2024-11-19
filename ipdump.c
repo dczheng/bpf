@@ -21,38 +21,56 @@ main(int argc, char **argv) {
     len_off = ETH_HLEN + offsetof(struct iphdr, tot_len);
 
     struct bpf_insn insns[] = {
-        bpf_mst64i(bpf_r10, -8, 0),
-        bpf_mov64(bpf_r6, bpf_r1),
+        bpf_mst8(bpf_fp, -8, bpf_r1),
 
-        bpf_mov64(bpf_r1, bpf_r6),
-        bpf_mov32i(bpf_r2, len_off),
-        bpf_mov64(bpf_r3, bpf_r10),
-        bpf_add64i(bpf_r3, -4),
-        bpf_mov32i(bpf_r4, 2),
+        bpf_mld8(bpf_r1, bpf_fp, -8),
+        bpf_mov4i(bpf_r2, len_off),
+        bpf_mov8(bpf_r3, bpf_fp),
+        bpf_add8i(bpf_r3, -12),
+        bpf_mst4i(bpf_r3, 0, 0),
+        bpf_mov4i(bpf_r4, 2),
         bpf_call(BPF_FUNC_skb_load_bytes),
-        bpf_jne64i(bpf_r0, 0, 17),
 
-        bpf_mov64(bpf_r1, bpf_r6),
-        bpf_mov32i(bpf_r2, proto_off),
-        bpf_mov64(bpf_r3, bpf_r10),
-        bpf_add64i(bpf_r3, -8),
-        bpf_mov32i(bpf_r4, 1),
+        bpf_jne8i(bpf_r0, 0, 4),
+        bpf_mld8(bpf_r1, bpf_fp, -8),
+        bpf_mld4(bpf_r2, bpf_fp, -12),
+        bpf_calli(2),
+        bpf_return(0),
+
+        bpf_mst8(bpf_fp, -8, bpf_r1),
+        bpf_mst4(bpf_fp, -12, bpf_r2),
+
+        bpf_mov4i(bpf_r2, proto_off),
+        bpf_mov8(bpf_r3, bpf_fp),
+        bpf_add8i(bpf_r3, -16),
+        bpf_mst4i(bpf_r3, 0, 0),
+        bpf_mov4i(bpf_r4, 1),
         bpf_call(BPF_FUNC_skb_load_bytes),
-        bpf_jne64i(bpf_r0, 0, 10),
 
-        bpf_imm64_map_ld(bpf_r1, map),
-        bpf_mov64(bpf_r2, bpf_r10),
-        bpf_add64i(bpf_r2, -8),
+        bpf_jne8i(bpf_r0, 0, 4),
+        bpf_mld4(bpf_r1, bpf_fp, -12),
+        bpf_mld4(bpf_r2, bpf_fp, -16),
+        bpf_calli(2),
+        bpf_return(0),
+
+        bpf_mst4(bpf_fp, -4, bpf_r1),
+        bpf_mst4(bpf_fp, -8, bpf_r2),
+
+        bpf_imm8_map_ld(bpf_r1, map),
+        bpf_mov8(bpf_r2, bpf_fp),
+        bpf_add8i(bpf_r2, -8),
         bpf_call(BPF_FUNC_map_lookup_elem),
-        bpf_jeq64i(bpf_r0, 0, 4),
+        bpf_jeq8i(bpf_r0, 0, 4),
 
-        bpf_mov64i(bpf_r1, 1),
-        bpf_atomic_add64(bpf_r0, 0, bpf_r1),
-        bpf_mld32(bpf_r1, bpf_r10, -4),
-        bpf_atomic_add64(bpf_r0, 8, bpf_r1),
+        bpf_mov8i(bpf_r1, 1),
+        bpf_atom_add8(bpf_r0, 0, bpf_r1),
+        bpf_mld4(bpf_r1, bpf_fp, -4),
+        bpf_atom_add8(bpf_r0, 8, bpf_r1),
 
         bpf_return(0),
     };
+
+    bpf_prog_print(insns, LEN(insns));
 
     TRY(!(ret = bpf_prog_load(&prog, BPF_PROG_TYPE_SOCKET_FILTER, insns,
         LEN(insns), "MIT", MB)), goto err);
