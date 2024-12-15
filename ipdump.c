@@ -30,43 +30,30 @@ main(int argc, char **argv) {
         bpf_st4i(bpf_r3, 0, 0),
         bpf_mov4i(bpf_r4, 2),
         bpf_call(BPF_FUNC_skb_load_bytes),
-
-        bpf_jne8i(bpf_r0, 0, 4),
-        bpf_ld8(bpf_r1, bpf_fp, -8),
-        bpf_ld4(bpf_r2, bpf_fp, -12),
-        bpf_calli(2),
+        bpf_jeq8i(bpf_r0, 0, 2),
         bpf_return(0),
 
-        bpf_st8(bpf_fp, -8, bpf_r1),
-        bpf_st4(bpf_fp, -12, bpf_r2),
-
+        bpf_ld8(bpf_r1, bpf_fp, -8),
         bpf_mov4i(bpf_r2, proto_off),
         bpf_mov8(bpf_r3, bpf_fp),
         bpf_add8i(bpf_r3, -16),
         bpf_st4i(bpf_r3, 0, 0),
         bpf_mov4i(bpf_r4, 1),
         bpf_call(BPF_FUNC_skb_load_bytes),
-
-        bpf_jne8i(bpf_r0, 0, 4),
-        bpf_ld4(bpf_r1, bpf_fp, -12),
-        bpf_ld4(bpf_r2, bpf_fp, -16),
-        bpf_calli(2),
+        bpf_jeq8i(bpf_r0, 0, 2),
         bpf_return(0),
-
-        bpf_st4(bpf_fp, -4, bpf_r1),
-        bpf_st4(bpf_fp, -8, bpf_r2),
 
         bpf_imm8_map_ld(bpf_r1, map),
         bpf_mov8(bpf_r2, bpf_fp),
-        bpf_add8i(bpf_r2, -8),
+        bpf_add8i(bpf_r2, -16),
         bpf_call(BPF_FUNC_map_lookup_elem),
-        bpf_jeq8i(bpf_r0, 0, 4),
+        bpf_jne8i(bpf_r0, 0, 2),
+        bpf_return(0),
 
         bpf_mov8i(bpf_r1, 1),
         bpf_atom_add8(bpf_r0, 0, bpf_r1),
-        bpf_ld4(bpf_r1, bpf_fp, -4),
+        bpf_ld4(bpf_r1, bpf_fp, -12),
         bpf_atom_add8(bpf_r0, 8, bpf_r1),
-
         bpf_return(0),
     };
 
