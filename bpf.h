@@ -400,6 +400,17 @@ bpf_map_lookup(__u32 map_fd, void *key, void *value) {
 }
 
 static inline int
+bpf_map_pop(__u32 map_fd, void *value) {
+    union bpf_attr attr = {0};
+    attr.map_fd = map_fd;
+    attr.value = ptr_to_u64(value);
+    if (syscall(__NR_bpf, BPF_MAP_LOOKUP_AND_DELETE_ELEM, &attr,
+        offsetofend(union bpf_attr, flags)) == -1)
+        return errno;
+    return 0;
+}
+
+static inline int
 bpf_prog_load(int *prog, __u32 prog_type, struct bpf_insn *insns,
     __u32 insn_cnt, char *license, uint32_t dump) {
     union bpf_attr attr = {0};

@@ -4,18 +4,22 @@
 int
 main(int argc, char **argv) {
     char *name = DEFAULT_IFACE;
-    int sock = -1, map = -1, prog = -1, i, j, ret = 0,
+    int sock = -1, map = -1, prog = -1, i, ret = 0,
         proto_off, len_off;
-    uint32_t key;
+    struct {
+        uint32_t proto, bytes;
+    } pkt;
+
     struct {
         uint64_t count, bytes;
-    } stat;
+    } proto[IPPROTO_MAX];
 
     if (argc > 1) name = argv[1];
     LOG("interface: %s\n", name);
 
-    TRY(!(ret = bpf_map_create(&map, BPF_MAP_TYPE_ARRAY,
-        sizeof(key), sizeof(stat), IPPROTO_MAX)), goto err);
+    ZERO(proto);
+    TRY(!(ret = bpf_map_create(&map, BPF_MAP_TYPE_QUEUE, 0,
+        sizeof(pkt), MB)), goto err);
 
     proto_off = ETH_HLEN + offsetof(struct iphdr, protocol);
     len_off = ETH_HLEN + offsetof(struct iphdr, tot_len);
@@ -46,14 +50,8 @@ main(int argc, char **argv) {
         bpf_imm8_map_ld(bpf_r1, map),
         bpf_mov8(bpf_r2, bpf_fp),
         bpf_add8i(bpf_r2, -16),
-        bpf_call(BPF_FUNC_map_lookup_elem),
-        bpf_jne8i(bpf_r0, 0, 2),
-        bpf_return(0),
-
-        bpf_mov8i(bpf_r1, 1),
-        bpf_atom_add8(bpf_r0, 0, bpf_r1),
-        bpf_ld4(bpf_r1, bpf_fp, -12),
-        bpf_atom_add8(bpf_r0, 8, bpf_r1),
+        bpf_mov8i(bpf_r3, BPF_ANY),
+        bpf_call(BPF_FUNC_map_push_elem),
         bpf_return(0),
     };
 
@@ -65,22 +63,25 @@ main(int argc, char **argv) {
     TRY(!(ret = if_attach(&sock, name, prog)), goto err);
 
     for (i = 0; i < 10; i++) {
-        for (j = 0; j < IPPROTO_MAX; j++) {
-            switch(j){
-#define _case(t) \
-        case IPPROTO_##t: \
-            key = j; \
-            TRY(!(ret = bpf_map_lookup(map, &key, &stat)), goto err); \
-            LOG("%4s: %3lu/%-8lu ", #t, stat.count, stat.bytes); \
-            break;
-
-            _case(TCP);
-            _case(UDP);
-            _case(ICMP);
-#undef _case
+        while (1) {
+            ret = bpf_map_pop(map, &pkt);
+            if (ret == ENOENT) {
+                ret = 0;
+                break;
             }
+            TRY(!ret, goto err);
+            TRY(pkt.proto < IPPROTO_MAX, RETURN(EINVAL, err));
+            proto[pkt.proto].count++;
+            proto[pkt.proto].bytes += pkt.bytes;
         }
+
+#define mylog(p) LOG("%4s: %3lu/%-8lu ", #p, proto[IPPROTO_##p].count, \
+                    proto[IPPROTO_##p].bytes)
+        mylog(ICMP);
+        mylog(TCP);
+        mylog(UDP);
         LOG("\n");
+#undef mylog
         sleep(1);
     }
 
