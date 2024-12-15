@@ -1,6 +1,7 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-#define DEFAULT_IFACE "wlp0s20f3"
+#define IFACE "wlp0s20f3"
+#define DURATION 10
 
 #endif

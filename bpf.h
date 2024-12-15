@@ -1,18 +1,20 @@
 #ifndef __BPF_H__
 #define __BPF_H__
 
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
 #include <stddef.h>
 #include <unistd.h>
-#include <linux/bpf.h>
-#include <sys/syscall.h>
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/syscall.h>
 #include <linux/ip.h>
+#include <linux/bpf.h>
+#include <linux/ipv6.h>
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
 
@@ -23,12 +25,13 @@
 
 #define KB 1024
 #define MB (KB * KB)
-#define GB (GB * GB)
+#define GB (KB * MB)
 
 #define LEN(x) (int)(sizeof(x) / sizeof((x)[0]))
 #define ZEROS(x, n) bzero(x, n)
 #define ZERO(x) ZEROS(&(x), sizeof(x))
 #define NOBREAK __attribute__((fallthrough))
+#define PACKED __attribute__((packed))
 
 #define LOG(fmt, arg...) printf(fmt, ##arg);
 #define _LOGERR(tag, fmt, arg...) do { \
@@ -38,6 +41,10 @@
 } while(0)
 
 #define LOGERR(fmt, arg...) _LOGERR("ERROR", fmt, ##arg)
+#define DIE(fmt, arg...) do { \
+    _LOGERR("DIE", fmt, ##arg); \
+    _exit(1); \
+} while(0)
 #define _TRYF(exp, tag, next, fmt, arg...) ({ \
     if (!(exp)) { \
         _LOGERR(tag, "`%s`" fmt, #exp, ##arg); \
@@ -62,6 +69,29 @@
 #define offsetofend(TYPE, MEMBER) \
     (offsetof(TYPE, MEMBER) + sizeof((((TYPE *)0)->MEMBER)))
 #endif
+
+#define SECOND              1000000000L
+#define MILLISECOND         1000000L
+#define MICROSECOND         1000L
+#define MINUTE              (60 * SECOND)
+#define HOUR                (60 * MINUTE)
+#define TO_SECOND(t)        (((double)(t)) / SECOND)
+#define TO_MILLISECOND(t)   (((double)(t)) / MILLISECOND)
+#define TO_MICROSECOND(t)   (((double)(t)) / MICROSECOND)
+#define TINYSLEEP() ({ \
+    usleep(10000); \
+    10000000; \
+})
+#define SLEEP(t) do { \
+    long _t = (t); \
+    if (_t > 0) usleep(TO_MICROSECOND(_t)); \
+} while(0)
+static inline long
+get_time(void) {
+    struct timespec ts;
+    ASSERT(!clock_gettime(CLOCK_MONOTONIC, &ts));
+    return ts.tv_sec * SECOND + ts.tv_nsec;
+}
 
 #define bpf_r0 BPF_REG_0
 #define bpf_r1 BPF_REG_1
