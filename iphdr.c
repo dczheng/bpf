@@ -22,7 +22,7 @@ main(void) {
 
         bpf_skb_load4(-4, eth_proto_off, 2),
         bpf_ld4(bpf_r8, bpf_fp, -4),
-        bpf_swap2(bpf_r8),
+        bpf_be2(bpf_r8),
         bpf_jeq8i(bpf_r8, ETH_P_IP, 3),
         bpf_jeq8i(bpf_r8, ETH_P_IPV6, 2),
         bpf_return(0),

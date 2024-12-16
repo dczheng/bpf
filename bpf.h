@@ -416,8 +416,8 @@ bpf_ins_string(struct bpf_insn *ins) {
 #undef _case2
 #undef _case3
 
-    snprintf(buf, sizeof(buf), "%4s %s %4s %x %x %8d %8ld",
-        s1, s2, s3, ins->dst_reg, ins->src_reg,
+    snprintf(buf, sizeof(buf), "[%02x] %4s %s %4s %x %x %8d %8ld",
+        ins->code, s1, s2, s3, ins->dst_reg, ins->src_reg,
         (int32_t)ins->off, (int64_t)ins->imm);
     return buf;
 }

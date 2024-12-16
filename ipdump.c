@@ -47,7 +47,7 @@ main(void) {
 
         bpf_skb_load4(-4, eth_proto_off, 2),
         bpf_ld4(bpf_r1, bpf_fp, -4),
-        bpf_swap2(bpf_r1),
+        bpf_be2(bpf_r1),
         bpf_jeq8i(bpf_r1, ETH_P_IP, 2),
         bpf_return(0),
 
@@ -56,7 +56,7 @@ main(void) {
 
         bpf_skb_load4(-4, ip_len_off, 2),
         bpf_ld4(bpf_r8, bpf_fp, -4),
-        bpf_swap2(bpf_r8),
+        bpf_be2(bpf_r8),
         bpf_add8i(bpf_r8, ETH_HLEN),
         bpf_jlt8i(bpf_r8, 65536, 2),
         bpf_return(0),
