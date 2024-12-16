@@ -7,10 +7,12 @@ struct cpu_t {
             struct ethhdr eth;
             struct iphdr ip;
         };
-        char data[65536];
+        char data[65535];
     };
     int size;
 } cpu[NCPU] = {0};
+
+int pcap = -1;
 
 void
 pkt_save(struct cpu_t *c) {
@@ -27,6 +29,7 @@ pkt_save(struct cpu_t *c) {
         ip_proto_name(c->ip.protocol),
         len, ntohs(c->ip.id),
         addr.src, addr.dst);
+    TRY(!pcap_write(pcap, c->data, c->size),);
 }
 
 int
@@ -41,6 +44,8 @@ main(void) {
 
     TRY(!(ret = bpf_map_create(&map, BPF_MAP_TYPE_QUEUE, 0,
         sizeof(pkt), MB)), goto err);
+
+    TRY(!(ret = pcap_open(&pcap, "ipdump.pcap")), goto err);
 
     struct bpf_insn insns[] = {
         bpf_mov8(bpf_r9, bpf_r1),
@@ -58,7 +63,7 @@ main(void) {
         bpf_ld4(bpf_r8, bpf_fp, -4),
         bpf_be2(bpf_r8),
         bpf_add8i(bpf_r8, ETH_HLEN),
-        bpf_jlt8i(bpf_r8, 65536, 2),
+        bpf_jlt8i(bpf_r8, 65535, 2),
         bpf_return(0),
 
         bpf_mov8i(bpf_r7, 0),
@@ -128,6 +133,7 @@ main(void) {
     }
 
 err:
+    if (pcap > 0) close(pcap);
     if (sock > 0) close(sock);
     if (map > 0) close(map);
     if (prog > 0) close(prog);

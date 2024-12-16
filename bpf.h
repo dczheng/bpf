@@ -2,6 +2,7 @@
 #define __BPF_H__
 
 #include <time.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -12,6 +13,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/syscall.h>
+#include <sys/time.h>
 #include <linux/ip.h>
 #include <linux/bpf.h>
 #include <linux/ipv6.h>
@@ -580,6 +582,73 @@ ip_proto_name(uint8_t p) {
     default: return HEXSTR(p);
 #undef _case
     }
+}
+
+struct pcap_file_header {
+    uint8_t magic[4];
+    uint16_t version_major, version_minor;
+    uint32_t thiszone, sigfigs, snaplen, linktype;
+};
+
+struct pcap_pkthdr {
+    uint32_t sec, usec, caplen, len;
+};
+
+static inline int
+file_write(int fd, void *p0, size_t size) {
+    int ret = 0;
+    uint8_t *p = ((uint8_t*)p0);
+    ssize_t n;
+
+    while (size > 0) {
+        if ((n = write(fd, p, size)) == -1) {
+            TRYF(errno == EAGAIN, RETURN(errno, err), "%s\n", strerror(errno));
+            break;
+        }
+        p += n;
+        size -= n;
+    }
+
+err:
+    return ret;
+}
+
+static inline int
+pcap_open(int *fd, char *fn) {
+    int ret = 0;
+    struct pcap_file_header h = {0};
+
+    TRY((*fd = open(fn, O_WRONLY|O_CREAT|O_TRUNC, 0644)) > 0,
+        RETURN(errno, err));
+
+    // little-endian and microsecond
+    h.magic[0] = 0xd4;
+    h.magic[1] = 0xc3;
+    h.magic[2] = 0xb2;
+    h.magic[3] = 0xa1;
+    h.version_major = htole16(2);
+    h.version_minor = htole16(4);
+    h.snaplen = htole32(65535);
+    h.linktype = htole32(1); // ethernet
+    TRY(!(ret = file_write(*fd, &h, sizeof(h))),);
+err:
+    return ret;
+}
+
+static inline int
+pcap_write(int fd, void *p, uint32_t size) {
+    int ret = 0;
+    struct pcap_pkthdr h = {0};
+    struct timeval t;
+
+    TRY(!gettimeofday(&t, NULL), RETURN(errno, err));
+    h.sec = htole32(t.tv_sec);
+    h.usec = htole32(t.tv_usec);
+    h.len = h.caplen = htole32(size);
+    TRY(!(ret = file_write(fd, &h, sizeof(h))), goto err);
+    TRY(!(ret = file_write(fd, p, size)),);
+err:
+    return ret;
 }
 
 #endif
