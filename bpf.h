@@ -15,6 +15,8 @@
 #include <sys/syscall.h>
 #include <sys/time.h>
 #include <linux/ip.h>
+#include <linux/tcp.h>
+#include <linux/udp.h>
 #include <linux/bpf.h>
 #include <linux/ipv6.h>
 #include <linux/if_ether.h>

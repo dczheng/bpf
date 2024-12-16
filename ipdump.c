@@ -6,18 +6,23 @@ struct cpu_t {
         struct __packed {
             struct ethhdr eth;
             struct iphdr ip;
+            union __packed {
+                struct tcphdr tcp;
+                struct udphdr udp;
+            };
         };
         char data[65535];
     };
     int size;
 } cpu[NCPU] = {0};
 
-int pcap = -1;
+int pcap = -1, idx = 0;
 
 void
 pkt_save(struct cpu_t *c) {
     struct addr_pair_t addr;
     int len = ntohs(c->ip.tot_len) + ETH_HLEN;
+    char dst[64], src[64];
 
     if (len != c->size) {
         LOGERR("Invalid packet size: %d/%d\n", len, c->size);
@@ -25,11 +30,19 @@ pkt_save(struct cpu_t *c) {
     }
 
     addr_pair(&addr, AF_INET, &c->ip);
-    LOG("[%02d] %8s %5d %5d %s > %s\n", (int)(c-cpu),
+    if (c->ip.protocol == IPPROTO_TCP || c->ip.protocol == IPPROTO_UDP) {
+        snprintf(src, sizeof(src), "%s:%d", addr.src, ntohs(c->udp.source));
+        snprintf(dst, sizeof(dst), "%s:%d", addr.dst, ntohs(c->udp.dest));
+    } else {
+        snprintf(src, sizeof(src), "%s", addr.src);
+        snprintf(dst, sizeof(dst), "%s", addr.dst);
+    }
+
+    LOG("[%05d/%02d] %5s %5d %5d %21s > %-21s\n", idx, (int)(c-cpu),
         ip_proto_name(c->ip.protocol),
-        len, ntohs(c->ip.id),
-        addr.src, addr.dst);
+        len, ntohs(c->ip.id), src, dst);
     TRY(!pcap_write(pcap, c->data, c->size),);
+    idx++;
 }
 
 int

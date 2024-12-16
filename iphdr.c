@@ -66,7 +66,7 @@ main(void) {
         addr_pair(&addr, t == ETH_P_IP ? AF_INET : AF_INET6,
             t == ETH_P_IP ? (void*)&hdr.ipv4 : (void*)&hdr.ipv6);
 
-        LOG("%5s %5s %5d %5d %s > %s\n",
+        LOG("%5s %5s %5d %5d %15s > %-15s\n",
             eth_proto_name(hdr.eth.h_proto),
             t == ETH_P_IP ? ip_proto_name(hdr.ipv4.protocol) : "",
             ntohs(t == ETH_P_IP ? hdr.ipv4.tot_len : hdr.ipv6.payload_len),
