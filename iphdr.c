@@ -3,13 +3,12 @@
 
 int
 main(void) {
-    char type[16],
-        saddr[INET6_ADDRSTRLEN], daddr[INET6_ADDRSTRLEN];
-    int sock = -1, map = -1, prog = -1, ret = 0, t, id, len;
+    struct addr_pair_t addr;
+    int sock = -1, map = -1, prog = -1, ret = 0, t;
     long tstart;
-    struct PACKED {
+    struct __packed {
         struct ethhdr eth;
-        union PACKED {
+        union __packed {
             struct iphdr ipv4;
             struct ipv6hdr ipv6;
         };
@@ -21,16 +20,7 @@ main(void) {
     struct bpf_insn insns[] = {
         bpf_mov8(bpf_r9, bpf_r1),
 
-        bpf_mov8(bpf_r1, bpf_r9),
-        bpf_mov8i(bpf_r2, offsetof(struct ethhdr, h_proto)),
-        bpf_mov8(bpf_r3, bpf_fp),
-        bpf_add8i(bpf_r3, -4),
-        bpf_st4i(bpf_r3, 0, 0),
-        bpf_mov8i(bpf_r4, 2),
-        bpf_call(BPF_FUNC_skb_load_bytes),
-        bpf_jeq8i(bpf_r0, 0, 2),
-        bpf_return(0),
-
+        bpf_skb_load4(-4, eth_proto_off, 2),
         bpf_ld4(bpf_r8, bpf_fp, -4),
         bpf_swap2(bpf_r8),
         bpf_jeq8i(bpf_r8, ETH_P_IP, 3),
@@ -44,16 +34,9 @@ main(void) {
         bpf_mov8i(bpf_r4, ETH_HLEN + sizeof(hdr.ipv4)),
         bpf_jeq8i(bpf_r8, ETH_P_IP, 1),
         bpf_mov8i(bpf_r4, ETH_HLEN + sizeof(hdr.ipv6)),
-        bpf_call(BPF_FUNC_skb_load_bytes),
-        bpf_jeq8i(bpf_r0, 0, 2),
-        bpf_return(0),
+        bpf_func_call(skb_load_bytes),
 
-        bpf_imm8_map_ld(bpf_r1, map),
-        bpf_mov8(bpf_r2, bpf_fp),
-        bpf_add8i(bpf_r2, -sizeof(hdr)),
-        bpf_mov8i(bpf_r3, BPF_ANY),
-        bpf_call(BPF_FUNC_map_push_elem),
-
+        bpf_map_push(map, -sizeof(hdr)),
         bpf_return(0),
     };
 
@@ -78,34 +61,17 @@ main(void) {
         TRY(!ret, goto err);
 
         t = ntohs(hdr.eth.h_proto);
-        switch(t) {
-        case ETH_P_IP:
-            switch (hdr.ipv4.protocol) {
-            #define _case(p) case IPPROTO_##p: \
-                snprintf(type, sizeof(type), "%s", #p); \
-                break;
-            _case(IGMP);
-            _case(ICMP);
-            _case(ICMPV6);
-            _case(TCP);
-            _case(UDP);
-            default: snprintf(type, sizeof(type), "%d", hdr.ipv4.protocol);
-            }
-            inet_ntop(AF_INET, &hdr.ipv4.saddr, saddr, INET_ADDRSTRLEN);
-            inet_ntop(AF_INET, &hdr.ipv4.daddr, daddr, INET_ADDRSTRLEN);
-            id = ntohs(hdr.ipv4.id);
-            len = ntohs(hdr.ipv4.tot_len);
-            break;
-        case ETH_P_IPV6:
-            inet_ntop(AF_INET6, &hdr.ipv6.saddr, saddr, INET6_ADDRSTRLEN);
-            inet_ntop(AF_INET6, &hdr.ipv6.daddr, daddr, INET6_ADDRSTRLEN);
-            sprintf(type, "IPV6");
-            id = -1;
-            len = ntohs(hdr.ipv6.payload_len);
-            break;
-        default: DIE("can't be %x!\n", t);
-        }
-        LOG("%8s %5d %5d %s > %s\n", type, id, len, saddr, daddr);
+        ASSERT(t == ETH_P_IP || t == ETH_P_IPV6);
+
+        addr_pair(&addr, t == ETH_P_IP ? AF_INET : AF_INET6,
+            t == ETH_P_IP ? (void*)&hdr.ipv4 : (void*)&hdr.ipv6);
+
+        LOG("%5s %5s %5d %5d %s > %s\n",
+            eth_proto_name(hdr.eth.h_proto),
+            t == ETH_P_IP ? ip_proto_name(hdr.ipv4.protocol) : "",
+            ntohs(t == ETH_P_IP ? hdr.ipv4.tot_len : hdr.ipv6.payload_len),
+            t == ETH_P_IP ? ntohs(hdr.ipv4.id) : -1,
+            addr.src, addr.dst);
     }
 
 err:

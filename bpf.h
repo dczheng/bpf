@@ -30,8 +30,8 @@
 #define LEN(x) (int)(sizeof(x) / sizeof((x)[0]))
 #define ZEROS(x, n) bzero(x, n)
 #define ZERO(x) ZEROS(&(x), sizeof(x))
-#define NOBREAK __attribute__((fallthrough))
-#define PACKED __attribute__((packed))
+#define __fallthrough __attribute__((fallthrough))
+#define __packed      __attribute__((packed))
 
 #define LOG(fmt, arg...) printf(fmt, ##arg);
 #define _LOGERR(tag, fmt, arg...) do { \
@@ -244,9 +244,10 @@ get_time(void) {
 #define bpf_jle8i(d, s, o)  bpf_ins(BPF_JLE  |BPF_I|BPF_JMP8, d, 0, o, s)
 #define bpf_jslt8i(d, s, o) bpf_ins(BPF_JSLT |BPF_I|BPF_JMP8, d, 0, o, s)
 #define bpf_jsle8i(d, s, o) bpf_ins(BPF_JSLE |BPF_I|BPF_JMP8, d, 0, o, s)
-#define bpf_ja4(o)          bpf_ins(BPF_JA   |BPF_I|BPF_JMP4, 0, 0, 0, o)
-#define bpf_ja8(o)          bpf_ins(BPF_JA   |BPF_I|BPF_JMP8, 0, 0, o, 0)
-#define bpf_call(i)         bpf_ins(BPF_CALL |BPF_I|BPF_JMP8, 0, 0, 0, i)
+#define bpf_jai(o)          bpf_ins(BPF_JA   |BPF_I|BPF_JMP4, 0, 0, 0, o)
+#define bpf_ja(o)           bpf_ins(BPF_JA   |BPF_I|BPF_JMP8, 0, 0, o, 0)
+#define bpf_call(i)         bpf_ins(BPF_CALL |BPF_I|BPF_JMP8, 0, 0, 0, \
+                                        BPF_FUNC_##i)
 #define bpf_calli(i)        bpf_ins(BPF_CALL |BPF_I|BPF_JMP8, 0, 1, 0, i)
 #define bpf_call_btf(i)     bpf_ins(BPF_CALL |BPF_I|BPF_JMP8, 0, 2, 0, i)
 #define bpf_exit()          bpf_ins(BPF_EXIT |BPF_I|BPF_JMP8, 0, 0, 0, 0)
@@ -304,6 +305,33 @@ get_time(void) {
     bpf_mov8i(bpf_r0, r), \
     bpf_exit()
 
+// 4 ins
+#define bpf_func_call(name) \
+    bpf_call(name), \
+    bpf_jeq8i(bpf_r0, 0, 2), \
+    bpf_return(0)
+
+// 10 ins
+#define bpf_skb_load4(pos, off, len) \
+    bpf_mov8(bpf_r1, bpf_r9), \
+    bpf_mov8i(bpf_r2, off), \
+    bpf_mov8(bpf_r3, bpf_fp), \
+    bpf_add8i(bpf_r3, pos), \
+    bpf_st4i(bpf_r3, 0, 0), \
+    bpf_mov8i(bpf_r4, len), \
+    bpf_func_call(skb_load_bytes)
+
+// 9 ins
+#define bpf_map_push(map, pos) \
+    bpf_imm8_map_ld(bpf_r1, map), \
+    bpf_mov8(bpf_r2, bpf_fp), \
+    bpf_add8i(bpf_r2, pos), \
+    bpf_mov8i(bpf_r3, BPF_ANY), \
+    bpf_func_call(map_push_elem)
+
+#define eth_proto_off offsetof(struct ethhdr, h_proto)
+#define ip_len_off (ETH_HLEN + offsetof(struct iphdr, tot_len))
+
 #define ptr_to_u64(p) (__u64)(p)
 
 static inline char*
@@ -320,7 +348,7 @@ bpf_ins_string(struct bpf_insn *ins) {
     memset(&buf, ' ', sizeof(buf));
     buf[sizeof(buf)-1] = 0;
     switch (BPF_CLASS(ins->code)) {
-    _case3(ALU4) NOBREAK;
+    _case3(ALU4) __fallthrough;
     _case3(ALU8)
         sprintf(s3, "ALU8");
         switch (BPF_OP(ins->code)) {
@@ -344,7 +372,7 @@ bpf_ins_string(struct bpf_insn *ins) {
         _case2(R);
         }
         break;
-    _case3(JMP4) NOBREAK;
+    _case3(JMP4) __fallthrough;
     _case3(JMP8)
         switch(BPF_OP(ins->code)) {
         _case1(JEQ);
@@ -366,9 +394,9 @@ bpf_ins_string(struct bpf_insn *ins) {
         _case2(R);
         }
         break;
-    _case3(ST) NOBREAK;
-    _case3(STX) NOBREAK;
-    _case3(LD) NOBREAK;
+    _case3(ST) __fallthrough;
+    _case3(STX) __fallthrough;
+    _case3(LD) __fallthrough;
     _case3(LDX)
         switch (BPF_MODE(ins->code)) {
         _case1(IMM);
@@ -494,6 +522,63 @@ err:
         *sock = -1;
     }
     return ret;
+}
+
+struct addr_pair_t {
+    char src[INET6_ADDRSTRLEN], dst[INET6_ADDRSTRLEN];
+};
+
+void
+addr_pair(struct addr_pair_t *p, int af, void *hdr) {
+    ASSERT(af == AF_INET6 || af == AF_INET);
+    if (af == AF_INET6) {
+        inet_ntop(af, &((struct ipv6hdr*)hdr)->saddr, p->src,
+            INET6_ADDRSTRLEN);
+        inet_ntop(af, &((struct ipv6hdr*)hdr)->daddr, p->dst,
+            INET6_ADDRSTRLEN);
+    } else {
+        inet_ntop(af, &((struct iphdr*)hdr)->saddr, p->src,
+            INET_ADDRSTRLEN);
+        inet_ntop(af, &((struct iphdr*)hdr)->daddr, p->dst,
+            INET_ADDRSTRLEN);
+    }
+}
+
+#define HEXSTR(v) ({ \
+    static char _buf[64]; \
+    uint64_t _v = v; \
+    switch (sizeof(v)) { \
+    case 1: sprintf(_buf, "0x%02lx", _v); break; \
+    case 2: sprintf(_buf, "0x%04lx", _v); break; \
+    case 4: sprintf(_buf, "0x%08lx", _v); break; \
+    case 8: sprintf(_buf, "0x%016lx", _v); break; \
+    default: sprintf(_buf, "0x???"); \
+    } \
+    _buf; \
+})
+
+static inline char*
+eth_proto_name(uint16_t p) {
+    p = ntohs(p);
+    switch(p) {
+    case ETH_P_IP: return "IP";
+    case ETH_P_IPV6: return "IPV6";
+    default: return HEXSTR(p);
+    }
+}
+
+static inline char*
+ip_proto_name(uint8_t p) {
+    switch (p) {
+#define _case(_p) case IPPROTO_##_p: return #_p;
+    _case(IGMP);
+    _case(ICMP);
+    _case(ICMPV6);
+    _case(TCP);
+    _case(UDP);
+    default: return HEXSTR(p);
+#undef _case
+    }
 }
 
 #endif
