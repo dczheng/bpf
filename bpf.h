@@ -65,11 +65,6 @@
     goto _pos; \
 } while (0)
 
-#ifndef offsetofend
-#define offsetofend(TYPE, MEMBER) \
-    (offsetof(TYPE, MEMBER) + sizeof((((TYPE *)0)->MEMBER)))
-#endif
-
 #define SECOND              1000000000L
 #define MILLISECOND         1000000L
 #define MICROSECOND         1000L
@@ -449,8 +444,7 @@ bpf_map_create(int *map, __u32 map_type, __u32 key_size, __u32 value_size,
     attr.key_size = key_size;
     attr.value_size = value_size;
     attr.max_entries = max_entries;
-    *map = syscall(__NR_bpf, BPF_MAP_CREATE, &attr,
-        offsetofend(union bpf_attr, map_token_fd));
+    *map = syscall(__NR_bpf, BPF_MAP_CREATE, &attr, sizeof(attr));
     return (*map == -1) ? errno : 0;
 }
 
@@ -460,8 +454,7 @@ bpf_map_lookup(__u32 map_fd, void *key, void *value) {
     attr.map_fd = map_fd;
     attr.key = ptr_to_u64(key);
     attr.value = ptr_to_u64(value);
-    if (syscall(__NR_bpf, BPF_MAP_LOOKUP_ELEM, &attr,
-        offsetofend(union bpf_attr, flags)) == -1)
+    if (syscall(__NR_bpf, BPF_MAP_LOOKUP_ELEM, &attr, sizeof(attr)) == -1)
         return errno;
     return 0;
 }
@@ -471,8 +464,8 @@ bpf_map_pop(__u32 map_fd, void *value) {
     union bpf_attr attr = {0};
     attr.map_fd = map_fd;
     attr.value = ptr_to_u64(value);
-    if (syscall(__NR_bpf, BPF_MAP_LOOKUP_AND_DELETE_ELEM, &attr,
-        offsetofend(union bpf_attr, flags)) == -1)
+    if (syscall(__NR_bpf, BPF_MAP_LOOKUP_AND_DELETE_ELEM,
+        &attr, sizeof(attr)) == -1)
         return errno;
     return 0;
 }
@@ -499,8 +492,7 @@ bpf_prog_load(int *prog, __u32 prog_type, struct bpf_insn *insns,
     attr.log_level = level;
     attr.log_buf = ptr_to_u64(log);
     attr.log_size = dump;
-    *prog = syscall(__NR_bpf, BPF_PROG_LOAD, &attr,
-        offsetofend(union bpf_attr, prog_token_fd));
+    *prog = syscall(__NR_bpf, BPF_PROG_LOAD, &attr, sizeof(attr));
 
     if (dump > 0) {
         LOG("%s\n", log);
