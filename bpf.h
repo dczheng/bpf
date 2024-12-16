@@ -120,11 +120,14 @@ get_time(void) {
 #define BPF_4    BPF_W
 #define BPF_8    BPF_DW
 #define BPF_ATOM BPF_ATOMIC
-#define BPF_SMEM BPF_MEMSX
 #define BPF_ALU4 BPF_ALU
 #define BPF_ALU8 BPF_ALU64
 #define BPF_JMP4 BPF_JMP32
 #define BPF_JMP8 BPF_JMP
+
+#ifdef BPF_MEMSX
+#define BPF_SMEM BPF_MEMSX
+#endif
 
 #define bpf_add4(d, s)      bpf_ins(BPF_ADD |BPF_R|BPF_ALU4, d, s, 0, 0)
 #define bpf_sub4(d, s)      bpf_ins(BPF_SUB |BPF_R|BPF_ALU4, d, s, 0, 0)
@@ -257,32 +260,36 @@ get_time(void) {
 #define bpf_st2(d, o, s)   bpf_ins(BPF_MEM |BPF_2|BPF_STX, d, s, o, 0)
 #define bpf_st4(d, o, s)   bpf_ins(BPF_MEM |BPF_4|BPF_STX, d, s, o, 0)
 #define bpf_st8(d, o, s)   bpf_ins(BPF_MEM |BPF_8|BPF_STX, d, s, o, 0)
-#define bpf_sst1(d, o, s)  bpf_ins(BPF_SMEM|BPF_1|BPF_STX, d, s, o, 0)
-#define bpf_sst2(d, o, s)  bpf_ins(BPF_SMEM|BPF_2|BPF_STX, d, s, o, 0)
-#define bpf_sst4(d, o, s)  bpf_ins(BPF_SMEM|BPF_4|BPF_STX, d, s, o, 0)
 #define bpf_st1i(d, o, s)  bpf_ins(BPF_MEM |BPF_1|BPF_ST,  d, 0, o, s)
 #define bpf_st2i(d, o, s)  bpf_ins(BPF_MEM |BPF_2|BPF_ST,  d, 0, o, s)
 #define bpf_st4i(d, o, s)  bpf_ins(BPF_MEM |BPF_4|BPF_ST,  d, 0, o, s)
 #define bpf_st8i(d, o, s)  bpf_ins(BPF_MEM |BPF_8|BPF_ST,  d, 0, o, s)
+#ifdef BPF_SMEM
+#define bpf_sst1(d, o, s)  bpf_ins(BPF_SMEM|BPF_1|BPF_STX, d, s, o, 0)
+#define bpf_sst2(d, o, s)  bpf_ins(BPF_SMEM|BPF_2|BPF_STX, d, s, o, 0)
+#define bpf_sst4(d, o, s)  bpf_ins(BPF_SMEM|BPF_4|BPF_STX, d, s, o, 0)
 #define bpf_sst1i(d, o, s) bpf_ins(BPF_SMEM|BPF_1|BPF_ST,  d, 0, o, s)
 #define bpf_sst2i(d, o, s) bpf_ins(BPF_SMEM|BPF_2|BPF_ST,  d, 0, o, s)
 #define bpf_sst4i(d, o, s) bpf_ins(BPF_SMEM|BPF_4|BPF_ST,  d, 0, o, s)
+#endif
 
 // load: dst = *(size*)(src + offset)
 #define bpf_ld1(d, s, o)   bpf_ins(BPF_MEM |BPF_1|BPF_LDX, d, s, o, 0)
 #define bpf_ld2(d, s, o)   bpf_ins(BPF_MEM |BPF_2|BPF_LDX, d, s, o, 0)
 #define bpf_ld4(d, s, o)   bpf_ins(BPF_MEM |BPF_4|BPF_LDX, d, s, o, 0)
 #define bpf_ld8(d, s, o)   bpf_ins(BPF_MEM |BPF_8|BPF_LDX, d, s, o, 0)
-#define bpf_sld1(d, s, o)  bpf_ins(BPF_SMEM|BPF_1|BPF_LDX, d, s, o, 0)
-#define bpf_sld2(d, s, o)  bpf_ins(BPF_SMEM|BPF_2|BPF_LDX, d, s, o, 0)
-#define bpf_sld4(d, s, o)  bpf_ins(BPF_SMEM|BPF_4|BPF_LDX, d, s, o, 0)
 #define bpf_ld1i(d, s, o)  bpf_ins(BPF_MEM |BPF_1|BPF_LD,  d, 0, o, s)
 #define bpf_ld2i(d, s, o)  bpf_ins(BPF_MEM |BPF_2|BPF_LD,  d, 0, o, s)
 #define bpf_ld4i(d, s, o)  bpf_ins(BPF_MEM |BPF_4|BPF_LD,  d, 0, o, s)
 #define bpf_ld8i(d, s, o)  bpf_ins(BPF_MEM |BPF_8|BPF_LD,  d, 0, o, s)
+#ifdef BPF_SMEM
+#define bpf_sld1(d, s, o)  bpf_ins(BPF_SMEM|BPF_1|BPF_LDX, d, s, o, 0)
+#define bpf_sld2(d, s, o)  bpf_ins(BPF_SMEM|BPF_2|BPF_LDX, d, s, o, 0)
+#define bpf_sld4(d, s, o)  bpf_ins(BPF_SMEM|BPF_4|BPF_LDX, d, s, o, 0)
 #define bpf_sld1i(d, s, o) bpf_ins(BPF_SMEM|BPF_1|BPF_LD,  d, 0, o, s)
 #define bpf_sld2i(d, s, o) bpf_ins(BPF_SMEM|BPF_2|BPF_LD,  d, 0, o, s)
 #define bpf_sld4i(d, s, o) bpf_ins(BPF_SMEM|BPF_4|BPF_LD,  d, 0, o, s)
+#endif
 
 // atomic: *(size*)(dst + offset) += src
 #define _BPF_ATOM BPF_ATOM|BPF_STX
@@ -402,7 +409,9 @@ bpf_ins_string(struct bpf_insn *ins) {
         _case1(IMM);
         _case1(MEM);
         _case1(ATOM);
+#ifdef BPF_SMEM
         _case1(SMEM);
+#endif
         }
         switch (BPF_SIZE(ins->code)) {
         _case2(1);
