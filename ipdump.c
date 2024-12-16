@@ -10,7 +10,7 @@ struct cpu_t {
         char data[65536];
     };
     int size;
-};
+} cpu[NCPU] = {0};
 
 void
 pkt_save(struct cpu_t *c) {
@@ -23,7 +23,7 @@ pkt_save(struct cpu_t *c) {
     }
 
     addr_pair(&addr, AF_INET, &c->ip);
-    LOG("%8s %5d %5d %s > %s\n",
+    LOG("[%02d] %8s %5d %5d %s > %s\n", (int)(c-cpu),
         ip_proto_name(c->ip.protocol),
         len, ntohs(c->ip.id),
         addr.src, addr.dst);
@@ -37,7 +37,7 @@ main(void) {
         uint8_t data[500];
         uint32_t head, size, cpu;
     } pkt;
-    struct cpu_t cpu[NCPU] = {0}, *c;
+    struct cpu_t *c;
 
     TRY(!(ret = bpf_map_create(&map, BPF_MAP_TYPE_QUEUE, 0,
         sizeof(pkt), MB)), goto err);
