@@ -20,12 +20,12 @@ main(void) {
     struct bpf_insn insns[] = {
         bpf_mov8(bpf_r9, bpf_r1),
 
-        bpf_skb_load(-2, eth_proto_off, 2),
+        bpf_skb_load(-2, eth_proto_off, 2, -1),
         bpf_ld2(bpf_r8, bpf_fp, -2),
         bpf_be2(bpf_r8),
         bpf_jeq8i(bpf_r8, ETH_P_IP, 3),
         bpf_jeq8i(bpf_r8, ETH_P_IPV6, 2),
-        bpf_return(0),
+        bpf_return(-1),
 
         bpf_jeq8i(bpf_r8, ETH_P_IPV6, 6),
         bpf_stack_zero8((sizeof(hdr) - ETH_HLEN - sizeof(hdr.ipv4)) / 8 + 1),
@@ -37,10 +37,10 @@ main(void) {
         bpf_mov8i(bpf_r4, ETH_HLEN + sizeof(hdr.ipv4)),
         bpf_jeq8i(bpf_r8, ETH_P_IP, 1),
         bpf_mov8i(bpf_r4, ETH_HLEN + sizeof(hdr.ipv6)),
-        bpf_func_call(skb_load_bytes),
+        bpf_ret_call(skb_load_bytes, 0, -1),
 
-        bpf_map_push(map, -sizeof(hdr)),
-        bpf_return(0),
+        bpf_map_push(map, -sizeof(hdr), -1),
+        bpf_return(-1),
     };
 
     bpf_print(insns, LEN(insns));

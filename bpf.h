@@ -308,27 +308,27 @@ get_time(void) {
     bpf_exit()
 
 // 4 ins
-#define bpf_func_call(name) \
+#define bpf_ret_call(name, want, ret) \
     bpf_call(name), \
-    bpf_jeq8i(bpf_r0, 0, 2), \
-    bpf_return(0)
+    bpf_jeq8i(bpf_r0, want, 2), \
+    bpf_return(ret)
 
 // 9 ins
-#define bpf_skb_load(pos, off, len) \
+#define bpf_skb_load(pos, off, len, ret) \
     bpf_mov8(bpf_r1, bpf_r9), \
     bpf_mov8i(bpf_r2, off), \
     bpf_mov8(bpf_r3, bpf_fp), \
     bpf_add8i(bpf_r3, pos), \
     bpf_mov8i(bpf_r4, len), \
-    bpf_func_call(skb_load_bytes)
+    bpf_ret_call(skb_load_bytes, 0, ret)
 
 // 9 ins
-#define bpf_map_push(map, pos) \
+#define bpf_map_push(map, pos, ret) \
     bpf_imm8_map_ld(bpf_r1, map), \
     bpf_mov8(bpf_r2, bpf_fp), \
     bpf_add8i(bpf_r2, pos), \
     bpf_mov8i(bpf_r3, BPF_ANY), \
-    bpf_func_call(map_push_elem)
+    bpf_ret_call(map_push_elem, 0, ret)
 
 // 6 ins
 #define _bpf_stack_zero(n, s) \
