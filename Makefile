@@ -12,7 +12,7 @@ EXEC		= $(EXEC_SRCS:.c=)
 all: $(EXEC)
 
 $(OBJS): %.o:%.c $(INCL) Makefile
-	$(CC) $(CFLAGS) $< -c
+	$(CC) $(CFLAGS) -c $<
 
 $(EXEC): %:%.o bpf.o
 	$(CC) $< bpf.o $(LDFLAGS) -o $@

@@ -367,8 +367,7 @@ struct addr_pair_t {
 
 void bpf_init(void);
 int bpf_is_running(void);
-char* bpf_ins_string(struct bpf_insn*);
-void bpf_prog_print(struct bpf_insn*, size_t);
+void bpf_print(struct bpf_insn*, size_t);
 int bpf_map_create(int*, __u32, __u32, __u32, __u32);
 int bpf_map_lookup(__u32, void*, void*);
 int bpf_map_pop(__u32, void*);

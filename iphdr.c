@@ -43,7 +43,7 @@ main(void) {
         bpf_return(0),
     };
 
-    bpf_prog_print(insns, LEN(insns));
+    bpf_print(insns, LEN(insns));
 
     TRY(!(ret = bpf_prog_load(&prog, BPF_PROG_TYPE_SOCKET_FILTER, insns,
         LEN(insns), "MIT", 10 * MB)), goto err);

@@ -11,7 +11,7 @@
 volatile int _running = 0;
 
 char*
-bpf_ins_string(struct bpf_insn *ins) {
+_bpf_print(struct bpf_insn *ins) {
     static char buf[128];
     char s1[5] = {'?'};
     char s2[2] = {'?'};
@@ -101,13 +101,13 @@ bpf_ins_string(struct bpf_insn *ins) {
 }
 
 void
-bpf_prog_print(struct bpf_insn *insns, size_t insn_cnt) {
+bpf_print(struct bpf_insn *insns, size_t insn_cnt) {
     char buf[128];
     int n;
     snprintf(buf, sizeof(buf), "%ld", insn_cnt);
     n = strlen(buf);
     for (size_t i = 0; i < insn_cnt; i++)
-        LOG("%*ld %s\n", n, i, bpf_ins_string(&insns[i]));
+        LOG("%*ld %s\n", n, i, _bpf_print(&insns[i]));
 }
 
 int
