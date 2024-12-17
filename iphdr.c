@@ -20,8 +20,8 @@ main(void) {
     struct bpf_insn insns[] = {
         bpf_mov8(bpf_r9, bpf_r1),
 
-        bpf_skb_load4(-4, eth_proto_off, 2),
-        bpf_ld4(bpf_r8, bpf_fp, -4),
+        bpf_skb_load(-2, eth_proto_off, 2),
+        bpf_ld2(bpf_r8, bpf_fp, -2),
         bpf_be2(bpf_r8),
         bpf_jeq8i(bpf_r8, ETH_P_IP, 3),
         bpf_jeq8i(bpf_r8, ETH_P_IPV6, 2),

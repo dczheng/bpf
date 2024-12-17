@@ -64,8 +64,8 @@ main(void) {
         bpf_mov8(bpf_r9, bpf_r1),
         bpf_stack_zero8(64),
 
-        bpf_skb_load4(-4, eth_proto_off, 2),
-        bpf_ld4(bpf_r1, bpf_fp, -4),
+        bpf_skb_load(-2, eth_proto_off, 2),
+        bpf_ld2(bpf_r1, bpf_fp, -2),
         bpf_be2(bpf_r1),
         bpf_jeq8i(bpf_r1, ETH_P_IP, 2),
         bpf_return(0),
@@ -73,8 +73,8 @@ main(void) {
         bpf_call(get_smp_processor_id),
         bpf_mov8(bpf_r6, bpf_r0),
 
-        bpf_skb_load4(-4, ip_len_off, 2),
-        bpf_ld4(bpf_r8, bpf_fp, -4),
+        bpf_skb_load(-2, ip_len_off, 2),
+        bpf_ld2(bpf_r8, bpf_fp, -2),
         bpf_be2(bpf_r8),
         bpf_add8i(bpf_r8, ETH_HLEN),
         bpf_jslt8i(bpf_r8, 65535, 2),

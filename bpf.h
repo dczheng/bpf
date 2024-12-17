@@ -313,17 +313,14 @@ get_time(void) {
     bpf_jeq8i(bpf_r0, 0, 2), \
     bpf_return(0)
 
-// 10 ins
-#define _bpf_skb_load(pos, off, len, s) \
+// 9 ins
+#define bpf_skb_load(pos, off, len) \
     bpf_mov8(bpf_r1, bpf_r9), \
     bpf_mov8i(bpf_r2, off), \
     bpf_mov8(bpf_r3, bpf_fp), \
     bpf_add8i(bpf_r3, pos), \
-    bpf_st##s##i(bpf_r3, 0, 0), \
     bpf_mov8i(bpf_r4, len), \
     bpf_func_call(skb_load_bytes)
-#define bpf_skb_load4(pos, off, len) _bpf_skb_load(pos, off, len, 4)
-#define bpf_skb_load8(pos, off, len) _bpf_skb_load(pos, off, len, 8)
 
 // 9 ins
 #define bpf_map_push(map, pos) \
