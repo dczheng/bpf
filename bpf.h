@@ -314,14 +314,16 @@ get_time(void) {
     bpf_return(0)
 
 // 10 ins
-#define bpf_skb_load4(pos, off, len) \
+#define _bpf_skb_load(pos, off, len, s) \
     bpf_mov8(bpf_r1, bpf_r9), \
     bpf_mov8i(bpf_r2, off), \
     bpf_mov8(bpf_r3, bpf_fp), \
     bpf_add8i(bpf_r3, pos), \
-    bpf_st4i(bpf_r3, 0, 0), \
+    bpf_st##s##i(bpf_r3, 0, 0), \
     bpf_mov8i(bpf_r4, len), \
     bpf_func_call(skb_load_bytes)
+#define bpf_skb_load4(pos, off, len) _bpf_skb_load(pos, off, len, 4)
+#define bpf_skb_load8(pos, off, len) _bpf_skb_load(pos, off, len, 8)
 
 // 9 ins
 #define bpf_map_push(map, pos) \
@@ -330,6 +332,19 @@ get_time(void) {
     bpf_add8i(bpf_r2, pos), \
     bpf_mov8i(bpf_r3, BPF_ANY), \
     bpf_func_call(map_push_elem)
+
+// 6 ins
+#define _bpf_stack_zero(n, s) \
+    bpf_mov8i(bpf_r2, n), \
+    bpf_mov8(bpf_r1, bpf_fp), \
+    bpf_add8i(bpf_r1, -s), \
+    bpf_st##s##i(bpf_r1, 0, 0), \
+    bpf_add8i(bpf_r2, -1), \
+    bpf_jsgt8i(bpf_r2, 0, -4)
+#define bpf_stack_zero8(n) _bpf_stack_zero(n, 8)
+#define bpf_stack_zero4(n) _bpf_stack_zero(n, 4)
+#define bpf_stack_zero2(n) _bpf_stack_zero(n, 2)
+#define bpf_stack_zero(n)  _bpf_stack_zero(n, 1)
 
 #define eth_proto_off offsetof(struct ethhdr, h_proto)
 #define ip_len_off (ETH_HLEN + offsetof(struct iphdr, tot_len))

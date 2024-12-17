@@ -62,6 +62,7 @@ main(void) {
 
     struct bpf_insn insns[] = {
         bpf_mov8(bpf_r9, bpf_r1),
+        bpf_stack_zero8(64),
 
         bpf_skb_load4(-4, eth_proto_off, 2),
         bpf_ld4(bpf_r1, bpf_fp, -4),
@@ -76,7 +77,7 @@ main(void) {
         bpf_ld4(bpf_r8, bpf_fp, -4),
         bpf_be2(bpf_r8),
         bpf_add8i(bpf_r8, ETH_HLEN),
-        bpf_jlt8i(bpf_r8, 65535, 2),
+        bpf_jslt8i(bpf_r8, 65535, 2),
         bpf_return(0),
 
         bpf_mov8i(bpf_r7, 0),
@@ -84,7 +85,7 @@ main(void) {
         bpf_st4i(bpf_fp, -8, sizeof(pkt.data)),
         bpf_st4i(bpf_fp, -12, 1),
 
-        bpf_jlt8i(bpf_r8, sizeof(pkt.data), 22),
+        bpf_jslt8i(bpf_r8, sizeof(pkt.data), 22),
         bpf_mov8(bpf_r1, bpf_r9),
         bpf_mov8(bpf_r2, bpf_r7),
         bpf_mov8(bpf_r3, bpf_fp),
@@ -95,9 +96,9 @@ main(void) {
         bpf_add8i(bpf_r8, -sizeof(pkt.data)),
         bpf_add8i(bpf_r7, sizeof(pkt.data)),
         bpf_st4i(bpf_fp, -12, 0),
-        bpf_jge8i(bpf_r8, sizeof(pkt.data), -22),
+        bpf_jsge8i(bpf_r8, sizeof(pkt.data), -22),
 
-        bpf_jne8i(bpf_r8, 0, 2),
+        bpf_jsgt8i(bpf_r8, 0, 2),
         bpf_return(0),
 
         bpf_st4(bpf_fp, -8, bpf_r8),

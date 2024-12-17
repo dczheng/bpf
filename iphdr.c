@@ -27,6 +27,9 @@ main(void) {
         bpf_jeq8i(bpf_r8, ETH_P_IPV6, 2),
         bpf_return(0),
 
+        bpf_jeq8i(bpf_r8, ETH_P_IPV6, 6),
+        bpf_stack_zero8((sizeof(hdr) - ETH_HLEN - sizeof(hdr.ipv4)) / 8 + 1),
+
         bpf_mov8(bpf_r1, bpf_r9),
         bpf_mov8i(bpf_r2, 0),
         bpf_mov8(bpf_r3, bpf_fp),
