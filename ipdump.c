@@ -1,3 +1,5 @@
+#include <signal.h>
+
 #include "bpf.h"
 #include "config.h"
 
@@ -16,7 +18,13 @@ struct cpu_t {
     int size;
 } cpu[NCPU] = {0};
 
+volatile int running = 1;
 int pcap = -1, idx = 0;
+
+void
+handler(int sig __unused) {
+    running = 0;
+}
 
 void
 pkt_save(struct cpu_t *c) {
@@ -48,12 +56,13 @@ pkt_save(struct cpu_t *c) {
 int
 main(void) {
     int sock = -1, map = -1, prog = -1, ret = 0;
-    long tstart;
     struct __packed {
         uint8_t data[500];
         uint32_t head, size, cpu;
     } pkt;
     struct cpu_t *c;
+
+    signal(SIGINT, handler);
 
     TRY(!(ret = bpf_map_create(&map, BPF_MAP_TYPE_QUEUE, 0,
         sizeof(pkt), MB)), goto err);
@@ -119,17 +128,14 @@ main(void) {
 
     TRY(!(ret = if_attach(&sock, IFACE, prog)), goto err);
 
-    tstart = get_time();
-    while (1) {
+    while (running) {
         TINYSLEEP();
-        if (TO_SECOND(get_time() - tstart) > DURATION) {
-            ret = 0;
-            break;
-        }
 
         ret = bpf_map_pop(map, &pkt);
-        if (ret == ENOENT)
+        if (ret == ENOENT) {
+            ret = 0;
             continue;
+        }
         TRY(!ret, goto err);
 
         TRY(pkt.cpu < NCPU, RETURN(EINVAL, err));
@@ -151,5 +157,6 @@ err:
     if (map > 0) close(map);
     if (prog > 0) close(prog);
     if (ret) LOGERR("%s\n", strerror(ret));
+    LOG("exit\n");
     return ret;
 }

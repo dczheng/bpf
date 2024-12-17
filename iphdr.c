@@ -1,11 +1,19 @@
+#include <signal.h>
+
 #include "bpf.h"
 #include "config.h"
+
+volatile int running = 1;
+
+void
+handler(int sig __unused) {
+    running = 0;
+}
 
 int
 main(void) {
     struct addr_pair_t addr;
     int sock = -1, map = -1, prog = -1, ret = 0, t;
-    long tstart;
     struct __packed {
         struct ethhdr eth;
         union __packed {
@@ -13,6 +21,8 @@ main(void) {
             struct ipv6hdr ipv6;
         };
     } hdr;
+
+    signal(SIGINT, handler);
 
     TRY(!(ret = bpf_map_create(&map, BPF_MAP_TYPE_QUEUE, 0,
         sizeof(hdr), MB)), goto err);
@@ -47,17 +57,14 @@ main(void) {
 
     TRY(!(ret = if_attach(&sock, IFACE, prog)), goto err);
 
-    tstart = get_time();
-    while (1) {
+    while (running) {
         TINYSLEEP();
-        if (TO_SECOND(get_time() - tstart) > DURATION) {
-            ret = 0;
-            break;
-        }
 
         ret = bpf_map_pop(map, &hdr);
-        if (ret == ENOENT)
+        if (ret == ENOENT) {
+            ret = 0;
             continue;
+        }
         TRY(!ret, goto err);
 
         t = ntohs(hdr.eth.h_proto);
@@ -79,5 +86,6 @@ err:
     if (map > 0) close(map);
     if (prog > 0) close(prog);
     if (ret) LOGERR("%s\n", strerror(ret));
+    LOG("exit\n");
     return ret;
 }

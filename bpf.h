@@ -36,6 +36,7 @@
 #define ZERO(x) ZEROS(&(x), sizeof(x))
 #define __fallthrough __attribute__((fallthrough))
 #define __packed      __attribute__((packed))
+#define __unused      __attribute__((unused))
 
 #define LOG(fmt, arg...) printf(fmt, ##arg);
 #define _LOGERR(tag, fmt, arg...) do { \
