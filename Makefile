@@ -3,14 +3,19 @@ CFLAGS		= -Wall -Wextra
 LDFLAGS		=
 
 SRCS		= $(wildcard *.c)
+OBJS		= $(SRCS:.c=.o)
+EXEC_SRCS	= $(filter-out bpf.c,$(SRCS))
 INCL		= $(wildcard *.h)
-EXEC		= $(SRCS:.c=)
+EXEC		= $(EXEC_SRCS:.c=)
 
 .PHONY: all clean
 all: $(EXEC)
 
-$(EXEC): %:%.c $(INCL) Makefile
-	$(CC) $(CFLAGS) $< $(LDFLAGS) -o $@
+$(OBJS): %.o:%.c $(INCL) Makefile
+	$(CC) $(CFLAGS) $< -c
+
+$(EXEC): %:%.o bpf.o
+	$(CC) $< bpf.o $(LDFLAGS) -o $@
 
 clean:
-	rm -rf $(EXEC)
+	rm -rf $(EXEC) $(OBJS)

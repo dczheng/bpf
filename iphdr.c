@@ -1,14 +1,5 @@
-#include <signal.h>
-
 #include "bpf.h"
 #include "config.h"
-
-volatile int running = 1;
-
-void
-handler(int sig __unused) {
-    running = 0;
-}
 
 int
 main(void) {
@@ -22,8 +13,7 @@ main(void) {
         };
     } hdr;
 
-    signal(SIGINT, handler);
-
+    bpf_init();
     TRY(!(ret = bpf_map_create(&map, BPF_MAP_TYPE_QUEUE, 0,
         sizeof(hdr), MB)), goto err);
 
@@ -57,7 +47,7 @@ main(void) {
 
     TRY(!(ret = if_attach(&sock, IFACE, prog)), goto err);
 
-    while (running) {
+    while (bpf_is_running()) {
         TINYSLEEP();
 
         ret = bpf_map_pop(map, &hdr);
@@ -86,6 +76,5 @@ err:
     if (map > 0) close(map);
     if (prog > 0) close(prog);
     if (ret) LOGERR("%s\n", strerror(ret));
-    LOG("exit\n");
     return ret;
 }

@@ -1,5 +1,3 @@
-#include <signal.h>
-
 #include "bpf.h"
 #include "config.h"
 
@@ -18,13 +16,7 @@ struct cpu_t {
     int size;
 } cpu[NCPU] = {0};
 
-volatile int running = 1;
 int pcap = -1, idx = 0;
-
-void
-handler(int sig __unused) {
-    running = 0;
-}
 
 void
 pkt_save(struct cpu_t *c) {
@@ -62,8 +54,7 @@ main(void) {
     } pkt;
     struct cpu_t *c;
 
-    signal(SIGINT, handler);
-
+    bpf_init();
     TRY(!(ret = bpf_map_create(&map, BPF_MAP_TYPE_QUEUE, 0,
         sizeof(pkt), MB)), goto err);
 
@@ -128,7 +119,7 @@ main(void) {
 
     TRY(!(ret = if_attach(&sock, IFACE, prog)), goto err);
 
-    while (running) {
+    while (bpf_is_running()) {
         TINYSLEEP();
 
         ret = bpf_map_pop(map, &pkt);
@@ -157,6 +148,5 @@ err:
     if (map > 0) close(map);
     if (prog > 0) close(prog);
     if (ret) LOGERR("%s\n", strerror(ret));
-    LOG("exit\n");
     return ret;
 }
