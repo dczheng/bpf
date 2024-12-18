@@ -1,6 +1,6 @@
 #!/bin/sh
 
-FILES="*.c *.h"
+FILES=$(find . -name "*.[c|h]")
 
 sed -n '/ \+$/p' ${FILES}
 sed -n '/( \+\(\S\)/p' ${FILES}
