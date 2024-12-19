@@ -1,6 +1,4 @@
-CC			= gcc
-CFLAGS		= -Wall -Wextra
-LDFLAGS		=
+include ../config.mk
 
 SRCS		= $(wildcard *.c)
 OBJS		= $(SRCS:.c=.o)
@@ -12,10 +10,10 @@ EXEC		= $(EXEC_SRCS:.c=)
 all: $(EXEC)
 
 $(OBJS): %.o:%.c $(INCL) Makefile
-	$(CC) $(CFLAGS) -c $<
+	$(call compile,$(CC),$<,$@)
 
 $(EXEC): %:%.o bpf.o
-	$(CC) $< bpf.o $(LDFLAGS) -o $@
+	$(call link,$(CC),$< bpf.o,$@)
 
 clean:
-	rm -rf $(EXEC) $(OBJS)
+	$(call clean,$(EXEC) $(OBJS))
