@@ -1,9 +1,10 @@
 #include "bpf.h"
 #include "config.h"
+#include "../tools.h"
 
 int
 main(void) {
-    struct addr_pair_t addr;
+    char src[INET6_ADDRSTRLEN], dst[INET6_ADDRSTRLEN];
     int sock = -1, map = -1, prog = -1, ret = 0, t;
     struct __packed {
         struct ethhdr eth;
@@ -63,15 +64,13 @@ main(void) {
         t = ntohs(hdr.eth.h_proto);
         ASSERT(t == ETH_P_IP || t == ETH_P_IPV6);
 
-        addr_pair(&addr, t == ETH_P_IP ? AF_INET : AF_INET6,
-            t == ETH_P_IP ? (void*)&hdr.ipv4 : (void*)&hdr.ipv6);
+        eth_ip_addr(src, dst, &hdr.eth);
 
         LOG("%5s %5s %5d %5d %15s > %-15s\n",
             eth_proto_name(hdr.eth.h_proto),
             t == ETH_P_IP ? ip_proto_name(hdr.ipv4.protocol) : "",
             ntohs(t == ETH_P_IP ? hdr.ipv4.tot_len : hdr.ipv6.payload_len),
-            t == ETH_P_IP ? ntohs(hdr.ipv4.id) : -1,
-            addr.src, addr.dst);
+            t == ETH_P_IP ? ntohs(hdr.ipv4.id) : -1, src, dst);
     }
 
 err:

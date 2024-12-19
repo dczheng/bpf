@@ -6,7 +6,8 @@
 #include <sys/syscall.h>
 #include <linux/if_packet.h>
 
-#include "./bpf.h"
+#include "bpf.h"
+#include "../tools.h"
 
 volatile int _running = 0;
 
@@ -200,18 +201,20 @@ err:
 }
 
 void
-addr_pair(struct addr_pair_t *p, int af, void *hdr) {
-    ASSERT(af == AF_INET6 || af == AF_INET);
-    if (af == AF_INET6) {
-        inet_ntop(af, &((struct ipv6hdr*)hdr)->saddr, p->src,
-            INET6_ADDRSTRLEN);
-        inet_ntop(af, &((struct ipv6hdr*)hdr)->daddr, p->dst,
-            INET6_ADDRSTRLEN);
-    } else {
-        inet_ntop(af, &((struct iphdr*)hdr)->saddr, p->src,
-            INET_ADDRSTRLEN);
-        inet_ntop(af, &((struct iphdr*)hdr)->daddr, p->dst,
-            INET_ADDRSTRLEN);
+eth_ip_addr(char *s, char *d, struct ethhdr *h) {
+    uint16_t t = ntohs(h->h_proto);
+    uint8_t *ip = ((uint8_t*)h) + ETH_HLEN;
+
+    switch (t) {
+    case ETH_P_IP:
+        inet_ntop(AF_INET, &((struct iphdr*)ip)->saddr, s, INET_ADDRSTRLEN);
+        inet_ntop(AF_INET, &((struct iphdr*)ip)->daddr, d, INET_ADDRSTRLEN);
+        break;
+    case ETH_P_IPV6:
+        inet_ntop(AF_INET6, &((struct iphdr*)ip)->saddr, s, INET6_ADDRSTRLEN);
+        inet_ntop(AF_INET6, &((struct iphdr*)ip)->daddr, d, INET6_ADDRSTRLEN);
+        break;
+    default: s[0] = d[0] = 0;
     }
 }
 

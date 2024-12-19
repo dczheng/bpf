@@ -1,5 +1,9 @@
+#include <linux/tcp.h>
+#include <linux/udp.h>
+
 #include "bpf.h"
 #include "config.h"
+#include "../tools.h"
 
 struct cpu_t {
     union {
@@ -20,27 +24,29 @@ int pcap = -1, idx = 0;
 
 void
 pkt_save(struct cpu_t *c) {
-    struct addr_pair_t addr;
     int len = ntohs(c->ip.tot_len) + ETH_HLEN;
-    char dst[64], src[64];
+    char dst[INET6_ADDRSTRLEN], src[INET6_ADDRSTRLEN],
+        dst_port[INET6_ADDRSTRLEN+8], src_port[INET6_ADDRSTRLEN+8];
 
     if (len != c->size) {
         LOGERR("Invalid packet size: %d/%d\n", len, c->size);
         return;
     }
 
-    addr_pair(&addr, AF_INET, &c->ip);
+    eth_ip_addr(dst, src, &c->eth);
     if (c->ip.protocol == IPPROTO_TCP || c->ip.protocol == IPPROTO_UDP) {
-        snprintf(src, sizeof(src), "%s:%d", addr.src, ntohs(c->udp.source));
-        snprintf(dst, sizeof(dst), "%s:%d", addr.dst, ntohs(c->udp.dest));
+        snprintf(src_port, sizeof(src_port), "%s:%d",
+            src, ntohs(c->udp.source));
+        snprintf(dst_port, sizeof(dst_port), "%s:%d",
+            dst, ntohs(c->udp.dest));
     } else {
-        snprintf(src, sizeof(src), "%s", addr.src);
-        snprintf(dst, sizeof(dst), "%s", addr.dst);
+        snprintf(src_port, sizeof(src_port), "%s", src);
+        snprintf(dst_port, sizeof(dst_port), "%s", dst);
     }
 
     LOG("[%05d/%02d] %5s %5d %5d %21s > %-21s\n", idx, (int)(c-cpu),
         ip_proto_name(c->ip.protocol),
-        len, ntohs(c->ip.id), src, dst);
+        len, ntohs(c->ip.id), src_port, dst_port);
     TRY(!pcap_write(pcap, c->data, c->size),);
     idx++;
 }

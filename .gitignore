@@ -2,4 +2,13 @@
 !**/
 !*.*
 !Makefile
+
 *.o
+*.pcap
+
+*.cmd
+*.ko
+*.mod
+*.mod.c
+*.order
+*.symvers
