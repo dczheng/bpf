@@ -224,7 +224,7 @@ eth_proto_name(uint16_t p) {
     switch(p) {
     case ETH_P_IP: return "IP";
     case ETH_P_IPV6: return "IPV6";
-    default: return hexstr(p);
+    default: return HEXSTR(p);
     }
 }
 
@@ -237,7 +237,7 @@ ip_proto_name(uint8_t p) {
     _case(ICMPV6);
     _case(TCP);
     _case(UDP);
-    default: return hexstr(p);
+    default: return HEXSTR(p);
 #undef _case
     }
 }

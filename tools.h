@@ -10,11 +10,8 @@
 #include <unistd.h>
 #include <string.h>
 
-#define KB 1024
-#define MB (KB * KB)
-#define GB (KB * MB)
+#include "./tools-common.h"
 
-#define LEN(x) (int)(sizeof(x) / sizeof((x)[0]))
 #define ZEROS(x, n) bzero(x, n)
 #define ZERO(x) ZEROS(&(x), sizeof(x))
 #define __fallthrough __attribute__((fallthrough))
@@ -48,11 +45,6 @@
     _TRYF(exp, "ASSERT", _exit(1), fmt,  ##arg)
 #define ASSERT(exp) ASSERTF(exp, "\n")
 
-#define RETURN(_ret, _pos) do { \
-    ret = _ret; \
-    goto _pos; \
-} while (0)
-
 #define SECOND              1000000000L
 #define MILLISECOND         1000000L
 #define MICROSECOND         1000L
@@ -75,18 +67,5 @@ get_time(void) {
     ASSERT(!clock_gettime(CLOCK_MONOTONIC, &ts));
     return ts.tv_sec * SECOND + ts.tv_nsec;
 }
-
-#define hexstr(v) ({ \
-    static char _buf[64]; \
-    uint64_t _v = v; \
-    switch (sizeof(v)) { \
-    case 1: sprintf(_buf, "0x%02lx", _v); break; \
-    case 2: sprintf(_buf, "0x%04lx", _v); break; \
-    case 4: sprintf(_buf, "0x%08lx", _v); break; \
-    case 8: sprintf(_buf, "0x%016lx", _v); break; \
-    default: sprintf(_buf, "0x???"); \
-    } \
-    _buf; \
-})
 
 #endif

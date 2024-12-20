@@ -3,6 +3,7 @@ CXX			= ccache g++
 
 CFLAGS		= -Wall -Wextra
 LDFLAGS		=
+INCL		= ../tools.h ../tools-common.h
 
 RED			= \033[38;5;1m
 GREEN		= \033[38;5;10m
